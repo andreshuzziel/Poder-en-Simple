@@ -99,6 +99,18 @@ function cargar(html){
   t('la ficha se muestra y la lista se oculta', d.querySelector('#ficha').style.display === 'block' && d.querySelector('#resultados').style.display === 'none');
   const fc = d.querySelector('#ficha-contenido');
   t('título simple del proyecto', /Sistema Mixto de Pensiones/.test(fc.querySelector('h2').textContent));
+  const vc = [...fc.querySelectorAll('#s-camara .vot')], vs = [...fc.querySelectorAll('#s-senado .vot')];
+  t('votaciones Cámara y Senado parten contraídas: solo línea "fecha · trámite · tipo" + resultado', vc.concat(vs).every(v => v.querySelector('.vot-body').style.display === 'none' && v.querySelector('.cab .chev').textContent === '▸' && /^\d{4}-\d{2}-\d{2} · .+/.test(v.querySelector('.cab .cab-linea').textContent.trim()) || /^\d{2}\/\d{2}\/\d{4} · .+/.test(v.querySelector('.cab .cab-linea').textContent.trim())));
+  vc[0].querySelector('.cab').click(); await espera(20);
+  t('clic en la línea despliega el detalle (▾)', vc[0].querySelector('.vot-body').style.display !== 'none' && vc[0].querySelector('.chev').textContent === '▾');
+  vc[0].querySelector('.cab').click(); await espera(20);
+  t('otro clic contrae', vc[0].querySelector('.vot-body').style.display === 'none');
+  const bp = fc.querySelector('#s-camara .plegar-todo');
+  t('botones Desplegar/Contraer todas en Cámara y Senado', bp && bp.querySelectorAll('button').length === 2 && fc.querySelector('#s-senado .plegar-todo'));
+  bp.querySelector('button[data-a="1"]').click(); await espera(20);
+  t('Desplegar todas abre todas las de la Cámara', vc.every(v => v.querySelector('.vot-body').style.display !== 'none'));
+  fc.querySelector('#s-senado .plegar-todo button[data-a="1"]').click(); await espera(20);
+  t('Senado también se despliega', vs.every(v => v.querySelector('.vot-body').style.display !== 'none'));
   t('boletín, ley y etapa como etiquetas', /Boletín 15480-13/.test(fc.textContent) && /Ley 21\.735/.test(fc.textContent) && /Tramitación terminada/.test(fc.textContent));
   t('explicación en simple', /En simple/.test(d.querySelector('#explica').textContent) && /Ya es ley/.test(d.querySelector('#explica').textContent));
   t('KPIs: ingreso, quién propuso, votaciones Cámara y Senado', fc.querySelectorAll('.kpi').length >= 4 && /Votaciones en la Cámara/.test(fc.textContent) && /Votaciones en el Senado/.test(fc.textContent));

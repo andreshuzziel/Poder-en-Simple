@@ -121,6 +121,16 @@
   .vot{background:var(--tarjeta); border:1px solid var(--borde); border-radius:14px; padding:14px 16px; margin-top:10px;}
   .vot .cab{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;}
   .vot .cab b{font-size:14px;}
+  .vot > .cab{cursor:pointer; user-select:none; flex-wrap:nowrap; justify-content:flex-start;}
+  .vot > .cab:hover{opacity:.85;}
+  .vot > .cab .chev{color:var(--azul); font-weight:900; font-size:15px; width:16px; flex:none;}
+  .vot > .cab .cab-linea{flex:1; line-height:1.3;}
+  .vot > .cab .res{margin-left:auto; flex:none;}
+  .plegar-todo{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 4px;}
+  .plegar-todo button{border:1px solid var(--borde); background:transparent; color:var(--azul); border-radius:9px; padding:5px 11px; font-size:12.5px; font-weight:800; cursor:pointer;}
+  .plegar-todo .nota-metodo{margin:0;}
+  @media (max-width:600px){ .vot > .cab{flex-wrap:wrap;} .vot > .cab .cab-linea{flex-basis:calc(100% - 24px);} .vot > .cab .res{margin-left:24px;} }
+  @media print{ .vot-body{display:block !important;} .chev, .plegar-todo{display:none !important;} }
   .stack{display:flex; height:14px; border-radius:99px; overflow:hidden; background:#edf0f7; margin-top:8px;}
   .stack span{display:block; height:100%;}
   .stack .S{background:var(--verde);} .stack .N{background:var(--rojo);} .stack .A{background:var(--ambar);} .stack .X{background:#c3c9d6;}
@@ -379,25 +389,30 @@ function fichaProyecto(d, r){
       ${d.errores&&d.errores.length?`<div class="aviso">Parte de la información no respondió en este momento: ${esc(d.errores.join(' · '))}</div>`:''}
     </div></div>`;
   // cámara
-  html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? c.votaciones.slice().reverse().map((v,i) => `
+  const barraPlegar = n => `<div class="plegar-todo"><button type="button" data-a="1">▾ Desplegar todas (${n})</button><button type="button" data-a="0">▸ Contraer todas</button><span class="nota-metodo">Toca la línea de cada votación para abrir o cerrar su detalle.</span></div>`;
+  html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? barraPlegar(c.votaciones.length) + c.votaciones.slice().reverse().map((v,i) => `
     <div class="vot" data-vid="${esc(v.id)}">
-      <div class="cab"><b>${esc(v.fecha)} · ${esc(v.tramite||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
+      <div class="cab" role="button" tabindex="0" aria-expanded="false"><span class="chev">▸</span><b class="cab-linea">${esc(v.fecha)} · ${esc(v.tramite||'')}${v.tipo?' · '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
+      <div class="vot-body" style="display:none">
       ${v.exp?renderSimple(v.exp, {oficialHref: c.url}):''}
       ${v.exp && v.exp.propuesta ? `<div id="comparado-cam-${esc(v.id)}">${renderComparado(v.exp.propuesta, null)}</div>` : ''}
       <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
       ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
       ${v.votos ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : `<div class="nota-metodo mt">Detalle por diputad@ disponible para las 6 votaciones más recientes de este proyecto.</div>`}
       <button class="btn-det btn-ctx" data-ctx="ctx-cam-${esc(v.id)}" data-texto="${esc((v.articulo||'') + ' ' + (v.materias||''))}">📚 Ver el contexto: qué dicen las leyes y artículos citados</button><div id="ctx-cam-${esc(v.id)}" class="det ctx" style="display:none"></div>
+      </div>
     </div>`).join('') : '<div class="card mt">Este proyecto no registra votaciones en la Sala de la Cámara de Diputados (puede estar en comisión o haber comenzado en el Senado).</div>'}</div>`;
   // senado
-  html += `<div class="sub" id="s-senado">${sv.length ? sv.slice().reverse().map((v,i) => `
+  html += `<div class="sub" id="s-senado">${sv.length ? barraPlegar(sv.length) + sv.slice().reverse().map((v,i) => `
     <div class="vot">
-      <div class="cab"><b>${esc(v.fecha)} · ${esc(v.etapa||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
+      <div class="cab" role="button" tabindex="0" aria-expanded="false"><span class="chev">▸</span><b class="cab-linea">${esc(v.fecha)} · ${esc(v.etapa||'')}${v.tipo?' · '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
+      <div class="vot-body" style="display:none">
       ${v.exp?renderSimple(v.exp, {oficialHref: s && s.url}):''}
       <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.tema||'')}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
       ${barra(v.si, v.no, v.abst)}
       <button class="btn-det" data-det="sen-${i}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i}" class="det" style="display:none"></div>
       <button class="btn-det btn-ctx" data-ctx="ctx-sen-${i}" data-texto="${esc(v.tema||'')}">📚 Ver el contexto: qué dicen las leyes y artículos citados</button><div id="ctx-sen-${i}" class="det ctx" style="display:none"></div>
+      </div>
     </div>`).join('') : '<div class="card mt">El Senado aún no registra votaciones en Sala para este proyecto (o todavía no ha llegado a esa cámara).</div>'}</div>`;
   // tramitación
   const tr = (s && s.tramites) || [];
@@ -444,6 +459,19 @@ function activarSubtabs(){
 }
 /* detalle nominal: diputad@s (Cámara) y senador@s (Senado) */
 function activarVotos(d){
+  // plegado de cada votación (solo se ve la línea "fecha · trámite · tipo" y el resultado)
+  const plegar = (vot, abrir) => {
+    const body = vot.querySelector(':scope > .vot-body'), cab = vot.querySelector(':scope > .cab'); if(!body) return;
+    if(abrir === undefined) abrir = body.style.display === 'none';
+    body.style.display = abrir ? '' : 'none'; vot.classList.toggle('abierta', abrir);
+    if(cab){ cab.setAttribute('aria-expanded', abrir ? 'true' : 'false'); const ch = cab.querySelector('.chev'); if(ch) ch.textContent = abrir ? '▾' : '▸'; }
+  };
+  $$('.vot').forEach(v => {
+    const cab = v.querySelector(':scope > .cab'); if(!cab || !v.querySelector(':scope > .vot-body')) return;
+    cab.addEventListener('click', e => { if(e.target.closest('a')) return; plegar(v); });
+    cab.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); plegar(v); } });
+  });
+  $$('.plegar-todo').forEach(bar => { const vots = [...bar.parentElement.querySelectorAll('.vot')]; bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => vots.forEach(v => plegar(v, b.dataset.a === '1')))); });
   const c = d.camara, sv = d.senado_votaciones || [], dips = d.diputados || {};
   const partidoSen = {}; (d.senadores||[]).forEach(s => { partidoSen[norm(s.apellido)] = s; });
   $$('.btn-ctx').forEach(b => b.addEventListener('click', async () => {
