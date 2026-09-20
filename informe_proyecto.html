@@ -202,7 +202,15 @@
   .print-only{display:none;}
   .progreso{display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap;} .progreso span{flex:1; min-width:110px; text-align:center; padding:6px 8px; border-radius:8px; font-size:12px; font-weight:700; background:#eef2fd; color:var(--texto2);}
   .progreso span.done{background:var(--verde); color:#fff;} .progreso span.now{background:#ffd75e; color:#3d2e00;} body.dark .progreso span{background:#25314f; color:#c9d3ea;}
+  .vot > .cab{cursor:pointer; user-select:none;}
+  .vot > .cab:hover{opacity:.85;}
+  .btn-plegar{margin-left:auto; border:1px solid var(--borde); background:var(--fondo2, transparent); color:var(--azul); border-radius:8px; padding:3px 9px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;}
+  .vot.abierta > .cab .btn-plegar{background:var(--azul); color:#fff;}
+  .plegar-todo{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0 12px;}
+  .plegar-todo button{border:1px solid var(--borde); background:transparent; color:var(--azul); border-radius:9px; padding:5px 11px; font-size:12.5px; font-weight:800; cursor:pointer;}
+  .plegar-todo .nota-metodo{margin:0;}
   @media print{
+    .vot-body{display:block !important;} .btn-plegar, .plegar-todo{display:none !important;}
     nav.tabs, header.hero, .inf-top, .indice, #dark-toggle, .btn-det, footer .no-print, .aviso-auto a{display:none !important;}
     .informe{display:block;} .cap{break-inside:avoid; box-shadow:none; border:1px solid #ccc;} .det{display:block !important;}
     body{background:#fff; color:#000;} .print-only{display:block; font-size:11px; color:#555; margin-bottom:10px;}
@@ -434,21 +442,25 @@ function progreso(d){
 }
 function capVotCamara(v, i, c){
   return `<div class="vot" id="vc-${esc(v.id)}">
-    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${fF(v.fecha)} · ${esc(v.tramite||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
+    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${fF(v.fecha)} · ${esc(v.tramite||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button></div>
+    <div class="vot-body" style="display:none">
     ${v.exp?renderSimple(v.exp, {oficialHref: c.url}):''}
     ${v.exp && v.exp.propuesta ? renderComparado(v.exp.propuesta, D.contexto) : ''}
     <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''} · Votación N° ${esc(v.id)}</div>
     ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
     ${v.votos && Object.keys(v.votos).length ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : '<div class="nota-metodo mt">La fuente oficial no entregó el voto por diputad@ de esta votación.</div>'}
+    </div>
   </div>`;
 }
 function capVotSenado(v, i, s){
   return `<div class="vot" id="vs-${i}">
-    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${esc(v.fecha)} · ${esc(v.etapa||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
+    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${esc(v.fecha)} · ${esc(v.etapa||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button></div>
+    <div class="vot-body" style="display:none">
     ${v.exp?renderSimple(v.exp, {oficialHref: s && s.url}):''}
     <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.tema||'')}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
     ${barra(v.si, v.no, v.abst)}
     <button class="btn-det" data-det="sen-${i-1}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i-1}" class="det" style="display:none"></div>
+    </div>
   </div>`;
 }
 function render(d){
@@ -533,8 +545,29 @@ function render(d){
   $('#indice').innerHTML = `<b>📑 Índice del informe</b>${caps.map(x => `<a href="#${x.id}">${esc(x.titulo)}${x.n!=null?`<span class="n">${fmt(x.n)}</span>`:''}</a>`).join('')}`;
   $('#informe').style.display = ''; $('#btn-imprimir').style.display = ''; $('#btn-escuchar').style.display = '';
   document.title = `Informe · ${nombre.slice(0,60)} · El Poder en Simple`;
-  activarVotos(d); marcarGlosario($('#cuerpo'));
+  activarPlegado(); activarVotos(d); marcarGlosario($('#cuerpo'));
   $$('#indice a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); const el = document.getElementById(a.getAttribute('href').slice(1)); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); $$('#indice a').forEach(x=>x.classList.remove('on')); a.classList.add('on'); }));
+}
+function plegar(vot, abrir){
+  const body = vot.querySelector(':scope > .vot-body'), b = vot.querySelector(':scope > .cab .btn-plegar'); if(!body) return;
+  if(abrir === undefined) abrir = body.style.display === 'none';
+  body.style.display = abrir ? '' : 'none'; vot.classList.toggle('abierta', abrir);
+  if(b){ b.setAttribute('aria-expanded', abrir ? 'true' : 'false'); b.textContent = abrir ? '▾ Ocultar detalle' : '▸ Ver detalle'; }
+}
+function activarPlegado(){
+  $$('.vot').forEach(v => {
+    const cab = v.querySelector(':scope > .cab'); if(!cab) return;
+    cab.addEventListener('click', e => { if(e.target.closest('a')) return; plegar(v); });
+  });
+  $$('section.cap').forEach(sec => {
+    const vots = [...sec.querySelectorAll('.vot')]; if(!vots.length) return;
+    const bar = document.createElement('div'); bar.className = 'plegar-todo';
+    bar.innerHTML = `<button type="button" data-a="1">▾ Desplegar todas (${vots.length})</button><button type="button" data-a="0">▸ Contraer todas</button><span class="nota-metodo">Toca el título de cada votación para abrir o cerrar su detalle.</span>`;
+    const h2 = sec.querySelector('h2'); if(!h2) return; h2.insertAdjacentElement('afterend', bar);
+    bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => vots.forEach(v => plegar(v, b.dataset.a === '1'))));
+  });
+  // vetos y observaciones: abiertas de entrada (son el foco del informe); el resto contraído
+  $$('#vetos .vot').forEach(v => plegar(v, true));
 }
 function activarVotos(d){
   const c = d.camara || {}, sv = d.senado_votaciones || [], dips = d.diputados || {};
