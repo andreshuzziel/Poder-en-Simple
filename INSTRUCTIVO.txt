@@ -95,6 +95,14 @@ código.
   renueva cada 15 minutos. Fuentes: opendata Cámara (vía Mirada al
   Congreso), tramitacion.senado.cl/wspublico (tramitación, votaciones
   nominales del Senado, senador@s vigentes), LeyChile, Presidencia.
+  REVISIÓN HUMANA DEL EXPLICADOR (recomendado una vez al mes):
+    python3 revisar_explicaciones.py 20
+  Imprime 20 votaciones al azar con el texto oficial y la explicación
+  generada. Si una explicación es incorrecta: corrige la regla en
+  explicador.py, agrega el caso a la lista de pruebas del explicador en
+  test_buscador_jsdom.js (sección 7c) y corre bash hito.sh.
+  Registro de errores detectados:
+    - (fecha) (votación N°) (qué decía mal) (corregido en …)
   Regenerar la página: python3 gen_buscador_page.py
   Pruebas: node test_buscador_jsdom.js (46) — incluidas en hito.sh.
 
