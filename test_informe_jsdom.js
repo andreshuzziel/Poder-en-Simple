@@ -108,6 +108,7 @@ function cargar(html, opts={}){
   console.log('== 5. Senado, indicaciones, vetos, urgencias, normas, fuentes ==');
   const sen = d.querySelector('#senado');
   t('Senado: votación con tema y conteo', sen.querySelectorAll('.vot').length === 1 && /general/i.test(sen.textContent));
+  t('todas las votaciones del informe (incl. vetos) parten contraídas', [...d.querySelectorAll('#senado .vot, #vetos .vot, #indicaciones .vot')].every(v => v.querySelector('.vot-body').style.display === 'none'));
   sen.querySelector('.vot .cab').click(); await espera(20);
   t('Senado: votación también plegable', sen.querySelector('.vot-body').style.display !== 'none');
   const bs = sen.querySelector('.btn-det'); bs.click(); await espera(50);

@@ -576,8 +576,7 @@ function activarPlegado(){
     const h2 = sec.querySelector('h2'); if(!h2) return; h2.insertAdjacentElement('afterend', bar);
     bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => vots.forEach(v => plegar(v, b.dataset.a === '1'))));
   });
-  // vetos y observaciones: abiertas de entrada (son el foco del informe); el resto contraído
-  $$('#vetos .vot').forEach(v => plegar(v, true));
+  // todas las votaciones y observaciones parten contraídas: solo se ve la línea "fecha · trámite · tipo" y el resultado
 }
 function activarVotos(d){
   const c = d.camara || {}, sv = d.senado_votaciones || [], dips = d.diputados || {};
