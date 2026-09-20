@@ -841,6 +841,37 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(html)
             except FileNotFoundError:
                 self.send_response(404); self.end_headers()
+        elif p.path in ('/buscador', '/buscador_avanzado.html'):
+            try:
+                html = open('/home/user/buscador_avanzado.html', 'rb').read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(len(html)))
+                self.end_headers()
+                self.wfile.write(html)
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers()
+        elif p.path == '/api/buscar':          # buscador avanzado: consulta las fuentes oficiales al momento
+            q = urllib.parse.parse_qs(p.query).get('q', [''])[0]
+            try:
+                import buscador
+                self._json(buscador.buscar(q))
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self._json({'error': str(e), 'resultados': []}, 500)
+        elif p.path == '/api/ficha':           # ficha completa: proyecto/ley (Cámara + Senado) o persona
+            qs = urllib.parse.parse_qs(p.query)
+            tipo = qs.get('tipo', ['proyecto'])[0]; ref = qs.get('ref', [''])[0]
+            try:
+                import buscador
+                if tipo in ('proyecto', 'ley'):
+                    self._json(buscador.ficha_proyecto(ref))
+                else:
+                    self._json(buscador.ficha_persona(tipo, ref))
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self._json({'error': str(e)}, 500)
         elif p.path == '/dashboard_congreso.html':   # nombre antiguo → redirige al principal
             self.send_response(301); self.send_header('Location', '/'); self.end_headers()
         elif p.path == '/api/estado':
@@ -857,4 +888,14 @@ if __name__ == '__main__':
     print(f'   Los datos se descargan al momento desde camara.cl / senado.cl / datos abiertos.')
     print(f'   Todo vive en memoria RAM y se borra al detener el servidor.')
     print(f'   → http://0.0.0.0:{PUERTO}/')
+    # Precalienta en segundo plano el índice del buscador avanzado (solo RAM) y lo renueva cada 15 min
+    def _precalentar():
+        while True:
+            try:
+                import buscador
+                buscador.buscar('ley')
+            except Exception as e:
+                print('precalentado buscador:', e)
+            time.sleep(TTL_CACHE - 60)
+    threading.Thread(target=_precalentar, daemon=True).start()
     ThreadingHTTPServer(('0.0.0.0', PUERTO), Handler).serve_forever()

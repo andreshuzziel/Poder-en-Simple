@@ -220,7 +220,7 @@ const kp = [
   {num:conDatos.length ? fmt(Math.max(...conDatos.map(c=>c.datos.mesas||0))) : '—', lbl:'mesas escrutadas'},
 ];
 $('#kpis').innerHTML = kp.map(k=>`<div class="kpi"><div class="num">${k.num}</div><div class="lbl">${k.lbl}</div></div>`).join('');
-$('#tabs').innerHTML = (DATA.cargos||[]).map((c,i)=>`<button data-i="${i}" ${i===0?'class="on"':''}>${c.emoji} ${c.nombre}</button>`).join('') + '<button data-i="guia">🧭 Guía para votar</button>';
+$('#tabs').innerHTML = (DATA.cargos||[]).map((c,i)=>`<button data-i="${i}" ${i===0?'class="on"':''}>${c.emoji} ${c.nombre}</button>`).join('') + '<button data-i="guia">🧭 Guía para votar</button>' + '<a href="buscador_avanzado.html" style="text-decoration:none; font-size:12px; font-weight:700; color:var(--texto2); padding:6px 11px; border-radius:10px; white-space:nowrap;">🔎 Buscador avanzado</a>';
 
 // Barra fija: altura real → variable CSS; y "irA(elemento)" deja el título a 10px bajo la barra
 (function(){

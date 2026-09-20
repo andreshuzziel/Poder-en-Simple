@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador avanzado · El Poder en Simple</title>
+<meta name="description" content="Busca por palabras clave cualquier ley, proyecto de ley, votación, diputad@, senador/a o autoridad de Gobierno de Chile. Consulta las fuentes oficiales en el momento, sin base de datos.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#1d3a8f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Buscador avanzado · El Poder en Simple">
+<meta property="og:description" content="Leyes, proyectos, votaciones de diputad@s y senador@s, autoridades de Gobierno: todo en una búsqueda, con fuentes oficiales en vivo.">
+<meta property="og:locale" content="es_CL">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔎%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --azul:#1d3a8f; --azul2:#2c55c8; --rojo:#d92632; --verde:#1e9e5a; --ambar:#e8a400;
+    --gris:#6b7280; --fondo:#f3f5fb; --tarjeta:#ffffff; --borde:#e4e8f2;
+    --texto:#1c2333; --texto2:#4a5468; --sombra:0 2px 10px rgba(20,30,70,.07);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--fondo); color:var(--texto); line-height:1.5;}
+  .cont{max-width:1080px; margin:0 auto; padding:0 16px;}
+  @media (min-width:1200px){ .cont{max-width:min(1560px, 94vw); padding:0 24px;} }
+  @media (min-width:1800px){ .cont{max-width:1700px;} }
+  header.hero{background:linear-gradient(135deg,#14265e 0%,#1d3a8f 55%,#2c55c8 100%); color:#fff; padding:28px 0 26px;}
+  .hero .franja{height:6px; background:linear-gradient(90deg,var(--rojo) 33%,#fff 33% 66%,var(--azul2) 66%); border-radius:3px; margin-bottom:18px; opacity:.85;}
+  .eyebrow{font-size:12px; letter-spacing:2.5px; font-weight:800; opacity:.85; text-transform:uppercase;}
+  .hero h1{font-size:clamp(24px,4vw,36px); letter-spacing:-.5px; margin-top:6px;}
+  .hero h1 .simple{color:#ffd75e;}
+  .hero .sub{margin-top:8px; font-size:15px; max-width:820px; color:#dbe4ff;}
+  .volver{display:inline-block; margin-top:12px; color:#ffd75e; font-weight:700; text-decoration:none; font-size:14px;}
+  html{scroll-padding-top:calc(var(--nav-h, 60px) + 10px); scroll-behavior:smooth;}
+  section[id], [id].card{scroll-margin-top:calc(var(--nav-h, 60px) + 10px);}
+  nav.tabs{position:sticky; top:0; z-index:50; background:#fff; border-bottom:1px solid var(--borde); box-shadow:var(--sombra);}
+  nav.tabs .cont{display:flex; gap:4px; flex-wrap:wrap; justify-content:center; align-items:center; padding:5px 12px; max-width:none; width:100%;}
+  nav.tabs a{white-space:nowrap; text-decoration:none; color:var(--texto2); font-size:12px; font-weight:600; padding:6px 9px; border-radius:999px; line-height:1.2; display:inline-flex; align-items:center; min-height:30px;}
+  nav.tabs a:hover{background:#eef2fd; color:var(--azul);}
+  nav.tabs a.on{background:var(--azul); color:#fff;}
+  @media (max-width:720px){ nav.tabs a{font-size:10px; padding:4px 7px; min-height:26px;} }
+  section{padding:26px 0 8px;}
+  h2.tit{font-size:clamp(20px,3vw,26px); position:relative; padding-bottom:10px;}
+  h2.tit::after{content:""; position:absolute; left:0; bottom:0; width:56px; height:4px; border-radius:4px; background:linear-gradient(90deg,var(--rojo),var(--azul2));}
+  .lead{margin-top:12px; color:var(--texto2); font-size:15px; max-width:860px;}
+  .card{background:var(--tarjeta); border:1px solid var(--borde); border-radius:16px; padding:18px 20px; box-shadow:var(--sombra);}
+  .mt{margin-top:14px;}
+  .nota-metodo{font-size:12.5px; color:var(--gris);}
+  /* caja de búsqueda */
+  .caja-busq{position:relative; margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;}
+  .caja-busq input{flex:1; min-width:240px; font-size:17px; padding:14px 16px 14px 46px; border-radius:14px; border:2px solid rgba(255,255,255,.35); background:#fff; color:var(--texto); outline:none; box-shadow:0 6px 24px rgba(0,0,0,.18);}
+  .caja-busq input:focus{border-color:#ffd75e;}
+  .caja-busq .lupa{position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:19px; pointer-events:none;}
+  .caja-busq button{background:#ffd75e; color:var(--azul); border:none; font-weight:800; font-size:15px; padding:0 22px; border-radius:14px; cursor:pointer; min-height:48px;}
+  .caja-busq button:hover{filter:brightness(1.05);}
+  .ejemplos{margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; color:#dbe4ff;}
+  .ejemplos button{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; padding:4px 11px; border-radius:99px; font-size:12px; cursor:pointer;}
+  .ejemplos button:hover{background:rgba(255,255,255,.26);}
+  /* filtros y lista */
+  .filtros{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; align-items:center;}
+  .filtros button{border:1px solid var(--borde); background:#fff; padding:6px 12px; border-radius:99px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--texto2);}
+  .filtros button.on{background:var(--azul); color:#fff; border-color:var(--azul);}
+  .estado-busq{margin-top:10px; font-size:13.5px; color:var(--texto2); min-height:20px;}
+  .lista{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+  .item{display:grid; grid-template-columns:44px 1fr auto; gap:12px; align-items:center; background:var(--tarjeta); border:1px solid var(--borde); border-radius:14px; padding:12px 14px; cursor:pointer; transition:transform .12s, box-shadow .12s; text-align:left; width:100%; color:var(--texto); font:inherit;}
+  .item:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(20,30,70,.12); border-color:#b9c8ec;}
+  .item .ico{font-size:24px; text-align:center;}
+  .item .t{font-weight:700; font-size:14.5px; line-height:1.3;}
+  .item .d{font-size:12.5px; color:var(--texto2); margin-top:3px;}
+  .item .lado{display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-size:11.5px; color:var(--gris); white-space:nowrap;}
+  .tag{display:inline-block; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:99px; letter-spacing:.3px; text-transform:uppercase;}
+  .tag.camara{background:#eef2ff; color:var(--azul);} .tag.senado{background:#f3ebff; color:#6a35b8;} .tag.gobierno{background:#fff1bf; color:#6b4f00;} .tag.congreso{background:#e6f7ee; color:#12603a;}
+  .tag.estado{background:#f0f2f7; color:var(--texto2);}
+  @media (max-width:600px){ .item{grid-template-columns:36px 1fr;} .item .lado{grid-column:1/-1; flex-direction:row; justify-content:flex-start;} }
+  /* ficha */
+  #ficha{display:none;}
+  .btn-volver{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--borde); background:#fff; color:var(--azul); font-weight:800; font-size:13.5px; padding:8px 16px; border-radius:10px; cursor:pointer; margin-bottom:12px;}
+  .ficha-head{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:14px;}
+  .kpi{background:var(--tarjeta); border:1px solid var(--borde); border-radius:14px; padding:12px 14px; text-align:center;}
+  .kpi .num{font-size:22px; font-weight:800; color:var(--azul);}
+  .kpi .lbl{font-size:12px; color:var(--texto2); margin-top:2px;}
+  .subtabs{display:flex; flex-wrap:wrap; gap:6px; margin-top:16px;}
+  .subtabs button{border:1px solid var(--borde); background:#fff; color:var(--texto2); font-weight:700; font-size:12.5px; padding:6px 11px; border-radius:9px; cursor:pointer;}
+  .subtabs button.on{background:var(--azul); color:#fff; border-color:var(--azul);}
+  .sub{display:none;} .sub.on{display:block;}
+  .timeline{list-style:none; margin-top:12px; border-left:3px solid var(--borde); padding-left:16px;}
+  .timeline li{position:relative; padding:6px 0 10px;}
+  .timeline li::before{content:""; position:absolute; left:-23px; top:12px; width:11px; height:11px; border-radius:50%; background:var(--azul2); border:2px solid #fff;}
+  .timeline li.sen::before{background:#6a35b8;} .timeline li.ley::before{background:var(--verde);}
+  .timeline .f{font-size:12px; color:var(--gris); font-weight:700;}
+  .timeline .q{font-size:13.5px;}
+  .vot{background:var(--tarjeta); border:1px solid var(--borde); border-radius:14px; padding:14px 16px; margin-top:10px;}
+  .vot .cab{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;}
+  .vot .cab b{font-size:14px;}
+  .stack{display:flex; height:14px; border-radius:99px; overflow:hidden; background:#edf0f7; margin-top:8px;}
+  .stack span{display:block; height:100%;}
+  .stack .S{background:var(--verde);} .stack .N{background:var(--rojo);} .stack .A{background:var(--ambar);} .stack .X{background:#c3c9d6;}
+  .leyenda{display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--texto2); margin-top:6px;}
+  .res{font-weight:800; font-size:12px; padding:3px 10px; border-radius:99px;}
+  .res.ok{background:#e6f7ee; color:#12603a;} .res.no{background:#fdeaea; color:#8f1d24;} .res.otro{background:#f0f2f7; color:var(--texto2);}
+  .btn-det{border:1px solid var(--borde); background:#fff; color:var(--azul); font-weight:700; font-size:12.5px; padding:5px 11px; border-radius:9px; cursor:pointer; margin-top:8px;}
+  .dips{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;}
+  .dip{font-size:11.5px; padding:3px 9px; border-radius:99px; border:1px solid var(--borde); background:#f7f8fb;}
+  .dip.S{background:#e6f7ee; color:#12603a; border-color:#bfe8d0;} .dip.N{background:#fdeaea; color:#8f1d24; border-color:#f5c2c2;}
+  .dip.A{background:#fdf3dc; color:#8a6200; border-color:#eedc9a;} .dip.X,.dip.P{background:#eef0f4; color:#5a6272; border-color:#d9dde6;}
+  .grupo h4{font-size:13px; margin-top:12px; color:var(--texto2);}
+  .filtro-voto{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;}
+  .filtro-voto button{border:1px solid var(--borde); background:#fff; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:700; cursor:pointer; color:var(--texto2);}
+  .filtro-voto button.on{background:var(--azul); color:#fff; border-color:var(--azul);}
+  .filtro-voto input{padding:5px 10px; border-radius:99px; border:1px solid var(--borde); font-size:12.5px; min-width:180px;}
+  .enlaces a{display:inline-block; margin:6px 8px 0 0; font-size:13px; color:var(--azul2); font-weight:700;}
+  .aviso{background:#fff8e6; border:1px solid #f3d36b; border-radius:12px; padding:10px 14px; font-size:13px; color:#5a4300; margin-top:12px;}
+  .cargando{display:inline-block; width:16px; height:16px; border:3px solid #c9d4f2; border-top-color:var(--azul2); border-radius:50%; animation:gira .8s linear infinite; vertical-align:middle; margin-right:6px;}
+  @keyframes gira{to{transform:rotate(360deg);}}
+  .persona{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:12px; font-size:13.5px;}
+  .persona div b{display:block; font-size:11.5px; color:var(--gris); text-transform:uppercase; letter-spacing:.4px;}
+  footer{margin:40px 0 30px; font-size:12.5px; color:var(--gris); border-top:1px solid var(--borde); padding-top:14px; line-height:1.7;}
+  #btn-escuchar{border:1px solid var(--borde); background:#fff; color:var(--azul); font-weight:700; font-size:12.5px; padding:6px 12px; border-radius:9px; cursor:pointer;}
+  /* ---------- MODO OSCURO ---------- */
+  #dark-toggle{border:1px solid #b9c8ec; background:#eef2fd; border-radius:10px; padding:4px 9px; font-size:15px; line-height:1; cursor:pointer; min-width:30px; min-height:30px; flex:0 0 auto;}
+  body.dark #dark-toggle{background:#25314f; border-color:#4a5c92; color:#fff;}
+  body.dark{--fondo:#0d1220; --tarjeta:#171e30; --borde:#293450; --texto:#e9edf7; --texto2:#a9b3ca; --sombra:0 2px 12px rgba(0,0,0,.5);}
+  body.dark header.hero{background:linear-gradient(135deg,#0a1128 0%,#14265e 55%,#1d3a8f 100%);}
+  body.dark nav.tabs{background:#121828; border-bottom-color:#293450;}
+  body.dark nav.tabs a{color:#c8d2e8;} body.dark nav.tabs a:hover{background:#212b46;}
+  body.dark .caja-busq input{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
+  body.dark .filtros button, body.dark .subtabs button, body.dark .btn-volver, body.dark .btn-det, body.dark .filtro-voto button, body.dark #btn-escuchar{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
+  body.dark .filtros button.on, body.dark .subtabs button.on, body.dark .filtro-voto button.on{background:var(--azul2); color:#fff;}
+  body.dark .filtro-voto input{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
+  body.dark .item:hover{border-color:#4a5c92;}
+  body.dark .tag.camara{background:#1f2a4d; color:#b9c8ff;} body.dark .tag.senado{background:#2c1f4d; color:#d3b9ff;} body.dark .tag.gobierno{background:#3a2f0e; color:#ffd980;} body.dark .tag.congreso{background:#123524; color:#8fe3b1;} body.dark .tag.estado{background:#222a3c; color:#a9b3ca;}
+  body.dark .stack{background:#222a3c;} body.dark .timeline li::before{border-color:#171e30;}
+  body.dark .dip{background:#222a3c; color:#a9b3ca; border-color:#3a4870;}
+  body.dark .dip.S, body.dark .res.ok{background:#123524; color:#8fe3b1; border-color:#1e6a42;}
+  body.dark .dip.N, body.dark .res.no{background:#3d161a; color:#ffb1b6; border-color:#7a2c33;}
+  body.dark .dip.A{background:#3a2f0e; color:#ffd980; border-color:#7a6320;}
+  body.dark .res.otro{background:#222a3c; color:#a9b3ca;}
+  body.dark .aviso{background:#2a2410; border-color:#b98a10; color:#f3e9c9;}
+  body.dark a{color:#9db4ff;} body.dark footer{color:#a9b3ca; border-color:#293450;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="cont">
+    <div class="franja"></div>
+    <div class="eyebrow">El Poder en Simple · Buscador avanzado</div>
+    <h1>Busca cualquier ley, proyecto, votación o autoridad <span class="simple">en las tres fuentes a la vez</span> 🔎</h1>
+    <p class="sub">Escribe palabras clave (por ejemplo <b>pensiones</b>, <b>fútbol</b>, <b>ministra de salud</b>, un número de boletín como <b>15480-13</b> o <b>ley 21735</b>). El sistema consulta <b>en este momento</b> a la Cámara de Diputados, el Senado y el Gobierno, arma la lista y, al elegir un resultado, abre la ficha completa con las votaciones de diputad@s y senador@s. Nada se guarda: no hay base de datos.</p>
+    <form class="caja-busq" id="form" autocomplete="off">
+      <span class="lupa">🔎</span>
+      <input id="q" type="search" placeholder="¿Qué quieres saber? Ej: pensiones, 40 horas, boletín 17757-29, senador Antofagasta…" aria-label="Buscar en la Cámara, el Senado y el Gobierno">
+      <button type="submit">Buscar</button>
+    </form>
+    <div class="ejemplos">Prueba con:
+      <button type="button" data-q="pensiones">pensiones</button>
+      <button type="button" data-q="fútbol">fútbol</button>
+      <button type="button" data-q="ministra salud">ministra salud</button>
+      <button type="button" data-q="15480-13">boletín 15480-13</button>
+      <button type="button" data-q="impuesto">impuesto</button>
+      <button type="button" data-q="senador Antofagasta">senador Antofagasta</button>
+    </div>
+    <a class="volver" href="index.html">← Volver al tablero principal</a>
+  </div>
+</header>
+
+<nav class="tabs"><div class="cont">
+  <a href="index.html">🏠 Inicio</a>
+  <a href="buscador_avanzado.html" class="on">🔎 Buscador avanzado</a>
+  <a href="elecciones_chile.html">🗳️ Elecciones</a>
+  <a href="calendario_votaciones.html">🗓️ Calendario</a>
+  <a href="proxima_eleccion.html">🔜 Próxima elección</a>
+  <button id="dark-toggle" title="Cambiar entre modo claro y oscuro" aria-label="Modo oscuro">🌙</button>
+</div></nav>
+
+<main class="cont">
+  <section id="resultados">
+    <h2 class="tit">📋 Resultados</h2>
+    <p class="lead" id="intro-txt">Aquí aparecerá la lista. Cada resultado indica de dónde viene (🏛️ Cámara · 🏛️ Senado · 🇨🇱 Gobierno) y qué es (ley, proyecto, votación, persona o noticia). Haz clic en uno para abrir su ficha completa.</p>
+    <div class="filtros" id="filtros" style="display:none">
+      <span class="nota-metodo">Filtrar:</span>
+      <button data-f="todo" class="on">Todo</button>
+      <button data-f="proyecto">📜 Proyectos y leyes</button>
+      <button data-f="persona">👤 Personas</button>
+      <button data-f="noticia">📰 Noticias</button>
+      <span style="flex:1"></span>
+      <button data-o="camara">Cámara</button><button data-o="senado">Senado</button><button data-o="gobierno">Gobierno</button>
+    </div>
+    <div class="estado-busq" id="estado"></div>
+    <div class="lista" id="lista"></div>
+  </section>
+
+  <section id="ficha">
+    <button class="btn-volver" id="btn-volver">← Volver a los resultados</button>
+    <div id="ficha-contenido"></div>
+  </section>
+
+  <footer>
+    <b>El Poder en Simple · Buscador avanzado</b> — herramienta ciudadana no oficial. Cada búsqueda consulta al momento los servicios de datos abiertos de la <a href="https://www.camara.cl" target="_blank" rel="noopener">Cámara de Diputados</a>, del <a href="https://tramitacion.senado.cl" target="_blank" rel="noopener">Senado</a>, de <a href="https://www.bcn.cl/leychile" target="_blank" rel="noopener">LeyChile (BCN)</a> y de la <a href="https://prensa.presidencia.cl" target="_blank" rel="noopener">Presidencia</a>. No existe base de datos: la información vive solo mientras la página está abierta. Los votos que se muestran son los registrados oficialmente por cada cámara.
+    · <a href="index.html" style="color:var(--azul2)">Volver al tablero principal</a>
+  </footer>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const ICO = {proyecto:'📜', ley:'📗', diputado:'🧑‍⚖️', senador:'🏛️', autoridad:'🇨🇱', noticia:'📰', aviso:'⚠️'};
+const ORG = {camara:'Cámara', senado:'Senado', gobierno:'Gobierno', congreso:'Congreso'};
+const fmt = n => (n||0).toLocaleString('es-CL');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let RES = [], filtroTipo = 'todo', filtroOrg = null, ultimaQ = '';
+let MI_DISTRITO = null; try{ MI_DISTRITO = localStorage.getItem('eps_distrito'); }catch(e){}
+
+/* ---------- barra fija: altura real + salto con margen ---------- */
+(function(){
+  const nav = document.querySelector('nav.tabs');
+  function medir(){ if(nav) document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px'); }
+  medir(); window.addEventListener('resize', medir); window.addEventListener('load', medir);
+  if(window.ResizeObserver && nav) new ResizeObserver(medir).observe(nav);
+  window.irA = function(el){
+    if(typeof el === 'string') el = document.getElementById(el);
+    if(!el) return false;
+    const tit = el.matches('h1,h2,h3') ? el : (el.querySelector('h1, h2, h3') || el);
+    const y = tit.getBoundingClientRect().top + window.pageYOffset - (nav ? nav.offsetHeight : 0) - 10;
+    window.scrollTo({top: Math.max(0, y), behavior: 'smooth'}); return true;
+  };
+})();
+
+/* ---------- buscar ---------- */
+async function buscar(q){
+  q = (q||'').trim(); if(!q) return;
+  ultimaQ = q; $('#q').value = q;
+  try{ history.replaceState(null, '', '#q=' + encodeURIComponent(q)); }catch(e){}
+  mostrarLista();
+  $('#intro-txt').style.display = 'none';
+  $('#estado').innerHTML = '<span class="cargando"></span>Consultando en este momento a la Cámara, el Senado y el Gobierno…';
+  $('#lista').innerHTML = '';
+  try{
+    const r = await fetch('/api/buscar?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    RES = d.resultados || [];
+    $('#filtros').style.display = RES.length ? 'flex' : 'none';
+    pintarLista();
+    $('#estado').innerHTML = RES.length
+      ? `<b>${fmt(d.total)}</b> resultado${d.total===1?'':'s'} para «${esc(q)}» · ${esc(d.fuentes||'')}`
+      : `Sin resultados para «${esc(q)}». Prueba con otra palabra, el número de boletín (ej. 17757-29) o el número de ley (ej. ley 21735).`;
+  }catch(e){
+    $('#estado').innerHTML = `⚠️ No se pudo consultar en este momento (${esc(e.message)}). Este buscador necesita el modo en vivo (servidor encendido) porque consulta las fuentes oficiales al instante.`;
+  }
+}
+function pintarLista(){
+  const grupo = t => (t==='proyecto'||t==='ley') ? 'proyecto' : (t==='diputado'||t==='senador'||t==='autoridad') ? 'persona' : t;
+  const vis = RES.filter(r => (filtroTipo==='todo' || grupo(r.tipo)===filtroTipo) && (!filtroOrg || r.origen===filtroOrg || (filtroOrg!=='gobierno' && r.origen==='congreso')));
+  $('#lista').innerHTML = vis.map((r,i) => `
+    <button class="item" data-i="${RES.indexOf(r)}" type="button">
+      <div class="ico">${ICO[r.tipo]||'•'}</div>
+      <div><div class="t">${esc(r.titulo)}</div><div class="d">${esc(r.detalle||'')}</div></div>
+      <div class="lado"><span class="tag ${esc(r.origen)}">${ORG[r.origen]||r.origen}</span>${r.estado?`<span class="tag estado">${esc(r.estado)}</span>`:''}${r.fecha?`<span>${esc(r.fecha)}</span>`:''}</div>
+    </button>`).join('') || '<p class="nota-metodo mt">Ningún resultado coincide con el filtro.</p>';
+}
+$('#lista').addEventListener('click', e => { const b = e.target.closest('.item'); if(!b) return; abrir(RES[+b.dataset.i]); });
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.f){ filtroTipo = b.dataset.f; $$('#filtros [data-f]').forEach(x => x.classList.toggle('on', x===b)); }
+  if(b.dataset.o){ filtroOrg = filtroOrg===b.dataset.o ? null : b.dataset.o; $$('#filtros [data-o]').forEach(x => x.classList.toggle('on', x.dataset.o===filtroOrg)); }
+  pintarLista();
+});
+$('#form').addEventListener('submit', e => { e.preventDefault(); buscar($('#q').value); });
+$$('.ejemplos button').forEach(b => b.addEventListener('click', () => buscar(b.dataset.q)));
+$('#btn-volver').addEventListener('click', () => { mostrarLista(); irA('resultados'); });
+function mostrarLista(){ $('#ficha').style.display = 'none'; $('#resultados').style.display = ''; }
+function mostrarFicha(){ $('#resultados').style.display = 'none'; $('#ficha').style.display = 'block'; }
+
+/* ---------- abrir un resultado ---------- */
+async function abrir(r){
+  if(!r || r.tipo==='aviso') return;
+  if(r.tipo==='noticia'){ window.open(r.url, '_blank', 'noopener'); return; }
+  mostrarFicha(); irA('ficha');
+  const fc = $('#ficha-contenido');
+  fc.innerHTML = `<h2 class="tit">${ICO[r.tipo]||''} ${esc(r.titulo)}</h2><p class="lead"><span class="cargando"></span>Descargando la ficha completa desde las fuentes oficiales…</p>`;
+  try{
+    let tipo = r.tipo, ref = r.ref;
+    if(r.tipo==='ley'){
+      // ley publicada: si conocemos su boletín, abrimos la ficha del proyecto; si no, la ley en LeyChile
+      if(r.boletin){ tipo = 'proyecto'; ref = r.boletin; }
+      else { fc.innerHTML = fichaLeySimple(r); return; }
+    }
+    const res = await fetch(`/api/ficha?tipo=${encodeURIComponent(tipo)}&ref=${encodeURIComponent(ref)}`);
+    const d = await res.json();
+    if(d.error) throw new Error(d.error);
+    fc.innerHTML = (tipo==='proyecto') ? fichaProyecto(d, r) : fichaPersona(d, r);
+    activarSubtabs(); activarVotos(d);
+    try{ history.replaceState(null, '', `#q=${encodeURIComponent(ultimaQ)}&tipo=${tipo}&ref=${encodeURIComponent(ref)}`); }catch(e){}
+  }catch(e){
+    fc.innerHTML = `<h2 class="tit">${esc(r.titulo)}</h2><div class="aviso">⚠️ No fue posible descargar la ficha en este momento (${esc(e.message)}). ${r.url?`Puedes verla en la fuente oficial: <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>`:''}</div>`;
+  }
+}
+function fichaLeySimple(r){
+  return `<h2 class="tit">📗 ${esc(r.titulo)}</h2><p class="lead">${esc(r.detalle||'')}</p>
+    <div class="card mt enlaces"><b>Fuentes oficiales</b><br><a href="${esc(r.url)}" target="_blank" rel="noopener">📗 Texto oficial de la ley (LeyChile · BCN) ↗</a>${r.historia?`<a href="${esc(r.historia)}" target="_blank" rel="noopener">📚 Historia de la ley ↗</a>`:''}</div>`;
+}
+
+/* ---------- ficha de proyecto / ley ---------- */
+const resClase = r => /aprob/i.test(r) ? 'ok' : /rechaz/i.test(r) ? 'no' : 'otro';
+function barra(si,no,ab,x){
+  const tot = Math.max(1, si+no+ab+(x||0));
+  return `<div class="stack"><span class="S" style="width:${si/tot*100}%"></span><span class="N" style="width:${no/tot*100}%"></span><span class="A" style="width:${ab/tot*100}%"></span>${x?`<span class="X" style="width:${x/tot*100}%"></span>`:''}</div>
+    <div class="leyenda"><span>🟢 A favor <b>${si}</b></span><span>🔴 En contra <b>${no}</b></span><span>🟡 Abstención <b>${ab}</b></span>${x!=null?`<span>⚪ No votaron <b>${x}</b></span>`:''}</div>`;
+}
+function fichaProyecto(d, r){
+  const c = d.camara, s = d.senado, sv = d.senado_votaciones || [];
+  const titulo = (c && (c.titulo_simple || c.nombre)) || (s && s.titulo) || r.titulo;
+  const ingreso = (c && c.ingreso) || (s && s.ingreso) || '';
+  const etapa = (s && s.etapa) || (c && c.votaciones.length ? 'En tramitación' : 'Sin información de etapa');
+  const nCam = c ? c.votaciones.length : 0, nSen = sv.length;
+  const ultimaCam = c && c.votaciones.length ? c.votaciones[c.votaciones.length-1] : null;
+  const ley = d.ley;
+  let html = `<h2 class="tit">📜 ${esc(titulo)}</h2>
+    <div class="ficha-head"><span class="tag congreso">Boletín ${esc(d.boletin)}</span>${ley?`<span class="tag gobierno">Ley ${esc(ley.numero)}</span>`:''}<span class="tag estado">${esc(etapa)}</span>${s&&s.urgencia&&!/sin/i.test(s.urgencia)?`<span class="tag estado">Urgencia: ${esc(s.urgencia)}</span>`:''}<button id="btn-escuchar" type="button">🔊 Escuchar</button></div>
+    <p class="lead" id="explica">${explicar(c, s, sv, ley)}</p>
+    <div class="kpis">
+      <div class="kpi"><div class="num">${esc(ingreso||'—')}</div><div class="lbl">Fecha de ingreso</div></div>
+      <div class="kpi"><div class="num">${esc((c&&c.iniciativa)||(s&&s.iniciativa)||'—')}</div><div class="lbl">${/mensaje/i.test((c&&c.iniciativa)||(s&&s.iniciativa)||'')?'Lo presentó el Gobierno':'Lo presentaron parlamentari@s'}</div></div>
+      <div class="kpi"><div class="num">${nCam}</div><div class="lbl">Votaciones en la Cámara</div></div>
+      <div class="kpi"><div class="num">${nSen}</div><div class="lbl">Votaciones en el Senado</div></div>
+      ${ley?`<div class="kpi"><div class="num">${esc(ley.diario_oficial||'')}</div><div class="lbl">Publicada en el Diario Oficial</div></div>`:''}
+    </div>
+    <div class="subtabs">
+      <button data-s="resumen" class="on">📌 Resumen</button>
+      <button data-s="camara">🏛️ Votaciones Cámara (${nCam})</button>
+      <button data-s="senado">🏛️ Votaciones Senado (${nSen})</button>
+      <button data-s="tramite">🧭 Tramitación paso a paso</button>
+      <button data-s="fuentes">🔗 Fuentes oficiales</button>
+    </div>`;
+  // resumen
+  html += `<div class="sub on" id="s-resumen"><div class="card mt">
+      <b>¿Quién lo presentó?</b> ${esc(quien(c, s))}<br>
+      ${c&&c.ministerios.length?`<b>Ministerios que lo impulsan:</b> ${esc(c.ministerios.join(' · '))}<br>`:''}
+      ${(c&&c.materias.length)||(s&&s.materias.length)?`<b>Temas:</b> ${esc(((c&&c.materias.length?c.materias:s.materias)||[]).slice(0,8).join(' · '))}<br>`:''}
+      <b>Cámara de origen:</b> ${esc((c&&c.origen)||(s&&s.origen)||'—')} · <b>Etapa actual:</b> ${esc(etapa)}${s&&s.subetapa&&s.subetapa.trim()!=='/'?` (${esc(s.subetapa)})`:''}
+      ${ultimaCam?`<div class="mt"><b>Última votación en la Cámara (${esc(ultimaCam.fecha)}):</b> <span class="res ${resClase(ultimaCam.resultado)}">${esc(ultimaCam.resultado)}</span>${barra(ultimaCam.si, ultimaCam.no, ultimaCam.abst)}</div>`:''}
+      ${sv.length?`<div class="mt"><b>Última votación en el Senado (${esc(sv[sv.length-1].fecha)}):</b> <span class="res ${sv[sv.length-1].si>sv[sv.length-1].no?'ok':'no'}">${sv[sv.length-1].si>sv[sv.length-1].no?'Aprobado':'Rechazado'}</span>${barra(sv[sv.length-1].si, sv[sv.length-1].no, sv[sv.length-1].abst)}</div>`:''}
+      ${d.errores&&d.errores.length?`<div class="aviso">Parte de la información no respondió en este momento: ${esc(d.errores.join(' · '))}</div>`:''}
+    </div></div>`;
+  // cámara
+  html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? c.votaciones.slice().reverse().map((v,i) => `
+    <div class="vot" data-vid="${esc(v.id)}">
+      <div class="cab"><b>${esc(v.fecha)} · ${esc(v.tramite||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
+      <div class="nota-metodo">${esc(v.articulo||'Votación del proyecto')}${v.quorum?' · Quórum: '+esc(v.quorum):''}</div>
+      ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
+      ${v.votos ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : `<div class="nota-metodo mt">Detalle por diputad@ disponible para las 6 votaciones más recientes de este proyecto.</div>`}
+    </div>`).join('') : '<div class="card mt">Este proyecto no registra votaciones en la Sala de la Cámara de Diputados (puede estar en comisión o haber comenzado en el Senado).</div>'}</div>`;
+  // senado
+  html += `<div class="sub" id="s-senado">${sv.length ? sv.slice().reverse().map((v,i) => `
+    <div class="vot">
+      <div class="cab"><b>${esc(v.fecha)} · ${esc(v.etapa||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
+      <div class="nota-metodo">${esc((v.tema||'').slice(0,260))}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
+      ${barra(v.si, v.no, v.abst)}
+      <button class="btn-det" data-det="sen-${i}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i}" class="det" style="display:none"></div>
+    </div>`).join('') : '<div class="card mt">El Senado aún no registra votaciones en Sala para este proyecto (o todavía no ha llegado a esa cámara).</div>'}</div>`;
+  // tramitación
+  const tr = (s && s.tramites) || [];
+  html += `<div class="sub" id="s-tramite">${tr.length ? `<ul class="timeline mt">${tr.slice().reverse().slice(0,80).map(t => `<li class="${/senado/i.test(t.camara)?'sen':''}${/ley|promulg|publicad/i.test(t.que)?' ley':''}"><div class="f">${esc(t.fecha)} · ${esc(t.camara)} · ${esc(t.etapa)}</div><div class="q">${esc(t.que)}</div></li>`).join('')}</ul>${tr.length>80?`<p class="nota-metodo">Se muestran los últimos 80 de ${tr.length} pasos; el historial completo está en el sitio del Senado.</p>`:''}` : '<div class="card mt">No hay historial de tramitación disponible en este momento.</div>'}</div>`;
+  // fuentes
+  html += `<div class="sub" id="s-fuentes"><div class="card mt enlaces"><b>Consulta la información oficial</b><br>
+      ${c?`<a href="${esc(c.url)}" target="_blank" rel="noopener">🏛️ Tramitación en la Cámara de Diputados (camara.cl) ↗</a>`:''}
+      ${s?`<a href="${esc(s.url)}" target="_blank" rel="noopener">🏛️ Tramitación en el Senado (senado.cl) ↗</a>`:''}
+      ${ley?`<a href="${esc(ley.url)}" target="_blank" rel="noopener">📗 Texto de la Ley ${esc(ley.numero)} (LeyChile · BCN) ↗</a>`:''}
+      <p class="nota-metodo mt">Fuentes: servicio de datos abiertos de la Cámara de Diputados (opendata.camara.cl) y del Senado (tramitacion.senado.cl), consultados en este momento. Sin base de datos.</p></div></div>`;
+  return html;
+}
+function quien(c, s){
+  if(c && c.autores && c.autores.length) return 'Diputad@s: ' + c.autores.join(', ');
+  if(s && s.autores && s.autores.length) return 'Parlamentari@s: ' + s.autores.join(', ');
+  const ini = (c&&c.iniciativa)||(s&&s.iniciativa)||'';
+  return /mensaje/i.test(ini) ? 'El Presidente de la República (mensaje presidencial)' + (c&&c.ministerios.length?', a través de '+c.ministerios[0]:'') : (ini ? 'Parlamentari@s (moción)' : 'Sin información');
+}
+function explicar(c, s, sv, ley){
+  const t = [];
+  const nombre = (c && c.nombre) || (s && s.titulo) || '';
+  t.push(`En simple: este proyecto busca <b>${esc(nombre.replace(/^(proyecto de ley,?\s*)/i,'').charAt(0).toLowerCase() + nombre.replace(/^(proyecto de ley,?\s*)/i,'').slice(1))}</b>.`);
+  const ini = (c&&c.iniciativa)||(s&&s.iniciativa)||'';
+  if(ini) t.push(/mensaje/i.test(ini) ? 'Lo propuso el Gobierno.' : 'Lo propusieron parlamentari@s.');
+  if(ley) t.push(`Ya es ley: se publicó como <b>Ley ${esc(ley.numero)}</b>${ley.diario_oficial?` el ${esc(ley.diario_oficial)}`:''}.`);
+  else if(s && s.etapa) t.push(`Hoy está en: <b>${esc(s.etapa)}</b>.`);
+  const nc = c ? c.votaciones.length : 0;
+  if(nc || sv.length) t.push(`Ha tenido <b>${nc}</b> votación${nc===1?'':'es'} en la Cámara y <b>${sv.length}</b> en el Senado; abajo puedes ver cómo votó cada diputad@ y cada senador/a.`);
+  return t.join(' ');
+}
+function activarSubtabs(){
+  $$('.subtabs button').forEach(b => b.addEventListener('click', () => {
+    $$('.subtabs button').forEach(x => x.classList.toggle('on', x===b));
+    $$('.sub').forEach(x => x.classList.toggle('on', x.id === 's-'+b.dataset.s));
+    irA($('#ficha'));
+  }));
+  const be = $('#btn-escuchar');
+  if(be) be.addEventListener('click', () => {
+    if(!('speechSynthesis' in window)){ alert('Tu navegador no tiene lectura en voz alta.'); return; }
+    const txt = ($('#ficha-contenido h2')||{}).textContent + '. ' + ($('#explica')||{}).textContent;
+    speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(txt); u.lang = 'es-CL'; speechSynthesis.speak(u);
+  });
+}
+/* detalle nominal: diputad@s (Cámara) y senador@s (Senado) */
+function activarVotos(d){
+  const c = d.camara, sv = d.senado_votaciones || [], dips = d.diputados || {};
+  const partidoSen = {}; (d.senadores||[]).forEach(s => { partidoSen[norm(s.apellido)] = s; });
+  $$('.btn-det').forEach(b => b.addEventListener('click', () => {
+    const caja = document.getElementById(b.dataset.det); if(!caja) return;
+    if(caja.style.display !== 'none'){ caja.style.display = 'none'; b.textContent = b.textContent.replace('Ocultar','Ver'); return; }
+    caja.style.display = ''; b.textContent = b.textContent.replace('Ver','Ocultar');
+    if(caja.dataset.listo) return; caja.dataset.listo = '1';
+    if(b.dataset.det.startsWith('cam-')){
+      const v = c.votaciones.find(x => 'cam-'+x.id === b.dataset.det); const votos = v.votos || {};
+      const filas = Object.keys(dips).map(id => ({id, n: dips[id].n, g: dips[id].g, dist: dips[id].dist, v: votos[id] || 'X'}));
+      pintarNominal(caja, filas, {S:'Votó a favor', N:'Votó en contra', A:'Se abstuvo', X:'No votó (ausente o pareado)'}, 'bancada', true);
+    }else{
+      const v = sv[sv.length-1-(+b.dataset.det.slice(4))];
+      const filas = v.votos.map(x => { const ap = norm(x.n.split(' ')[0]); const s = partidoSen[ap]; return {n: x.n, g: s ? s.partido : 'Sin partido registrado', dist: s ? s.region : '', v: x.v}; });
+      pintarNominal(caja, filas, {S:'Votó a favor', N:'Votó en contra', A:'Se abstuvo', P:'Pareado (no vota por acuerdo)', X:'Sin registro'}, 'partido', false);
+    }
+  }));
+}
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function pintarNominal(caja, filas, T, etiquetaGrupo, conDistrito){
+  let filtro = 'T', q = '', soloMio = false;
+  caja.innerHTML = `<div class="filtro-voto">
+      <button data-f="T" class="on">Todos (${filas.length})</button><button data-f="S">🟢 A favor (${filas.filter(f=>f.v==='S').length})</button><button data-f="N">🔴 En contra (${filas.filter(f=>f.v==='N').length})</button><button data-f="A">🟡 Abstención (${filas.filter(f=>f.v==='A').length})</button>${filas.some(f=>f.v==='X')?`<button data-f="X">⚪ No votaron (${filas.filter(f=>f.v==='X').length})</button>`:''}${filas.some(f=>f.v==='P')?`<button data-f="P">⚪ Pareados (${filas.filter(f=>f.v==='P').length})</button>`:''}
+      ${conDistrito && MI_DISTRITO ? `<button data-mio="1">🏠 Solo mi distrito (${MI_DISTRITO})</button>` : ''}
+      <input type="search" placeholder="🔍 Busca un nombre…" aria-label="Buscar nombre"></div><div class="grupos"></div>`;
+  const pintar = () => {
+    const vis = filas.filter(f => (filtro==='T' || f.v===filtro) && (!q || norm(f.n).includes(norm(q))) && (!soloMio || String(f.dist)===String(MI_DISTRITO)));
+    const grupos = {}; vis.forEach(f => (grupos[f.g] = grupos[f.g] || []).push(f));
+    caja.querySelector('.grupos').innerHTML = Object.keys(grupos).sort().map(g => `<div class="grupo"><h4>${esc(g)} <span class="nota-metodo">(${grupos[g].length})</span></h4><div class="dips">${grupos[g].sort((a,b)=>a.n.localeCompare(b.n)).map(f => `<span class="dip ${f.v}" title="${T[f.v]||''}${f.dist?' · '+(conDistrito?'Distrito '+f.dist:f.dist):''}">${esc(f.n)}</span>`).join('')}</div></div>`).join('') || '<p class="nota-metodo mt">Nadie coincide con el filtro.</p>';
+  };
+  caja.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => { filtro = b.dataset.f; caja.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x===b)); pintar(); }));
+  const bm = caja.querySelector('[data-mio]'); if(bm) bm.addEventListener('click', () => { soloMio = !soloMio; bm.classList.toggle('on', soloMio); pintar(); });
+  caja.querySelector('input').addEventListener('input', e => { q = e.target.value; pintar(); });
+  pintar();
+}
+
+/* ---------- ficha de persona ---------- */
+function fichaPersona(d, r){
+  const p = d.persona || {};
+  if(d.tipo === 'diputado'){
+    const a = d.asistencia || {};
+    return `<h2 class="tit">🧑‍⚖️ ${esc(p.nombre||r.titulo)}</h2>
+      <div class="ficha-head"><span class="tag camara">Diputad@ en ejercicio</span><span class="tag estado">${esc(p.partido||'')}</span><span class="tag estado">Distrito ${esc(p.distrito||'')}</span></div>
+      <p class="lead">Diputad@ por el <b>Distrito ${esc(p.distrito||'')}</b>, del partido <b>${esc(p.partido||'')}</b>${a.grupo?` (bancada ${esc(a.grupo)})`:''}. Abajo: su asistencia oficial a la Sala este año y cómo votó en las leyes más recientes.</p>
+      <div class="kpis">
+        <div class="kpi"><div class="num">${a.asist!=null?a.asist+'%':'—'}</div><div class="lbl">Asistencia a la Sala (${d.total_sesiones||'—'} sesiones)</div></div>
+        <div class="kpi"><div class="num">${a.inas!=null?a.inas:'—'}</div><div class="lbl">Inasistencias${a.inas_ef!=null?` (${a.inas_ef} sin justificar)`:''}</div></div>
+        <div class="kpi"><div class="num">${(d.votos_recientes||[]).length}</div><div class="lbl">Votaciones recientes revisadas</div></div>
+      </div>
+      <div class="card mt"><b>🗳️ Cómo votó en las últimas leyes</b>
+        ${(d.votos_recientes||[]).length ? `<div class="lista mt">${d.votos_recientes.map(v => `<button class="item" type="button" data-bol="${esc(v.boletin)}"><div class="ico">${{S:'🟢',N:'🔴',A:'🟡'}[v.voto]||'⚪'}</div><div><div class="t">${esc(v.titulo)}</div><div class="d">${esc(v.fecha)} · Resultado en la Sala: ${esc(v.resultado)} · Boletín ${esc(v.boletin)}</div></div><div class="lado"><span class="tag ${v.voto==='S'?'congreso':v.voto==='N'?'gobierno':'estado'}">${{S:'A favor',N:'En contra',A:'Abstención'}[v.voto]||'No votó'}</span></div></button>`).join('')}</div><p class="nota-metodo mt">Haz clic en una ley para abrir su ficha completa.</p>` : '<p class="nota-metodo mt">No fue posible descargar sus votos en este momento.</p>'}
+      </div>
+      <div class="card mt enlaces"><b>Fuentes oficiales</b><br><a href="${esc(d.url)}" target="_blank" rel="noopener">🏛️ Ficha oficial en camara.cl ↗</a><a href="${esc(d.url_mociones)}" target="_blank" rel="noopener">📜 Proyectos que ha presentado ↗</a><a href="${esc(d.url_gastos)}" target="_blank" rel="noopener">💰 Gastos operacionales ↗</a></div>`;
+  }
+  if(d.tipo === 'senador'){
+    return `<h2 class="tit">🏛️ ${esc(p.nombre||r.titulo)}</h2>
+      <div class="ficha-head"><span class="tag senado">Senador/a en ejercicio</span><span class="tag estado">${esc(p.partido||'')}</span><span class="tag estado">${esc(p.region||'')}</span></div>
+      <p class="lead">Senador/a por la <b>${esc(p.region||'')}</b> (circunscripción ${esc(p.circ||'')}), del partido <b>${esc(p.partido||'')}</b>. Para ver cómo votó en una ley, busca la ley y abre la pestaña «Votaciones Senado» de su ficha: allí aparece el voto de cada senador/a.</p>
+      <div class="card mt enlaces"><b>Fuentes oficiales</b><br><a href="${esc(d.url)}" target="_blank" rel="noopener">🏛️ Ficha oficial en senado.cl ↗</a><a href="https://www.senado.cl/senadores/listado-de-senadores" target="_blank" rel="noopener">👥 Listado de senador@s ↗</a></div>`;
+  }
+  return `<h2 class="tit">🇨🇱 ${esc(p.nombre||p.ministro||r.titulo)}</h2>
+    <div class="ficha-head"><span class="tag gobierno">Poder Ejecutivo</span><span class="tag estado">${esc(p.cargo||r.detalle||'')}</span></div>
+    <p class="lead">${esc(p.cargo||r.detalle||'')}${p.ministerio?` · ${esc(p.ministerio)}`:''}${p.desde?` · en el cargo desde ${esc(p.desde)}`:''}. El Gobierno propone leyes al Congreso (mensajes) y las ejecuta una vez aprobadas.</p>
+    <div class="card mt enlaces"><b>Fuentes oficiales</b><br><a href="${esc(d.url||'https://www.gob.cl')}" target="_blank" rel="noopener">🇨🇱 Fuente oficial ↗</a><a href="https://prensa.presidencia.cl/" target="_blank" rel="noopener">📰 Prensa Presidencia ↗</a></div>`;
+}
+$('#ficha-contenido').addEventListener('click', e => { const b = e.target.closest('[data-bol]'); if(b) abrir({tipo:'proyecto', ref:b.dataset.bol, titulo:'Boletín '+b.dataset.bol}); });
+
+/* ---------- modo oscuro (preferencia compartida) ---------- */
+(function(){
+  const btn = $('#dark-toggle'); let dark = false;
+  try{ dark = localStorage.getItem('eps_dark')==='1'; }catch(e){}
+  const aplicar = ()=>{ document.body.classList.toggle('dark', dark); btn.textContent = dark ? '☀️' : '🌙'; };
+  aplicar(); btn.addEventListener('click', ()=>{ dark=!dark; try{ localStorage.setItem('eps_dark', dark?'1':'0'); }catch(e){} aplicar(); });
+})();
+/* enlaces externos: pestaña nueva */
+document.addEventListener('click', function(e){ const a = e.target.closest('a[href]'); if(!a) return; const h = a.getAttribute('href')||''; if(/^https?:\/\//i.test(h) && a.host !== location.host){ a.target='_blank'; a.rel='noopener'; } }, true);
+
+/* ---------- arranque: ?q= o #q= ---------- */
+(function(){
+  const m = (location.hash + location.search).match(/[?#&]q=([^&]+)/);
+  const t = (location.hash + location.search).match(/[?#&]tipo=([^&]+)/), r = (location.hash + location.search).match(/[?#&]ref=([^&]+)/);
+  if(m){ buscar(decodeURIComponent(m[1])).then(() => { if(t && r) abrir({tipo: t[1], ref: decodeURIComponent(r[1]), titulo: decodeURIComponent(r[1])}); }); }
+  else $('#q').focus();
+})();
+</script>
+</body>
+</html>

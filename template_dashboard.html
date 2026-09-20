@@ -168,7 +168,12 @@
   .hero .badges{justify-content:center; margin-top:18px;}
 
   /* buscador ciudadano (hero) */
-  .busq-hero{position:relative; max-width:660px; margin:26px auto 0; z-index:5; text-align:left;}
+  .busq-hero{position:relative; max-width:900px; margin:26px auto 0; z-index:5; text-align:left;}
+  .busq-fila{display:flex; gap:8px; align-items:stretch; flex-wrap:wrap;}
+  .busq-fila .busq-caja{flex:1; min-width:240px;}
+  .btn-avanzado{display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#ffd75e; color:#1d3a8f; font-weight:800; font-size:14px; text-decoration:none; padding:0 18px; border-radius:14px; white-space:nowrap; box-shadow:0 6px 24px rgba(0,0,0,.18); min-height:48px;}
+  .btn-avanzado:hover{filter:brightness(1.05);}
+  @media (max-width:600px){ .btn-avanzado{width:100%; min-height:42px; font-size:13px;} }
   .busq-caja{display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:6px 8px 6px 16px;
     box-shadow:0 12px 34px rgba(6,14,45,.45), 0 0 0 1px rgba(255,255,255,.25); transition:box-shadow .25s, transform .25s;}
   .busq-caja:focus-within{transform:translateY(-1px); box-shadow:0 16px 44px rgba(6,14,45,.55), 0 0 0 3px rgba(255,215,94,.65);}
@@ -574,11 +579,14 @@
     </div>
 
     <div class="busq-hero" id="busq-wrap">
+      <div class="busq-fila">
       <div class="busq-caja">
         <span class="busq-lupa">🔍</span>
         <input id="busq" type="text" autocomplete="off" spellcheck="false"
                placeholder="Busca diputad@s, leyes, ministros, fechas, glosario…" aria-label="Buscar información en la página">
         <span class="busq-hint">↑↓ · Enter</span>
+      </div>
+      <a class="btn-avanzado" id="btn-avanzado" href="buscador_avanzado.html" title="Busca leyes, proyectos, votaciones de diputad@s y senador@s y autoridades en las fuentes oficiales, al momento">🔎 Buscador avanzado</a>
       </div>
       <div class="busq-panel" id="busq-res" role="listbox"></div>
     </div>
@@ -616,6 +624,7 @@
     <a href="#glosario">📖 Glosario</a>
     <a href="#ranking">🏆 Ranking</a>
     <a href="proxima_eleccion.html">🔜 Próxima elección</a>
+    <a href="buscador_avanzado.html">🔎 Buscador avanzado</a>
     <button id="ninos-toggle" title="Modo «explícame como si tuviera 12 años»" aria-label="Explicación para niños y niñas" aria-pressed="false">🧒</button>
     <button id="dark-toggle" title="Cambiar entre modo claro y oscuro" aria-label="Modo oscuro">🌙</button>
   </div>
@@ -1938,6 +1947,7 @@ renderGastoBanc();
     return texto.slice(0,i) + '<mark>' + texto.slice(i, i+q.length) + '</mark>' + texto.slice(i+q.length);
   };
   const secciones = [
+    {t:'🔎 Buscador avanzado: leyes, proyectos, votaciones de diputad@s y senador@s, autoridades (fuentes oficiales en vivo)', id:'busq-wrap', keys:'buscador avanzado buscar ley proyecto boletin votacion senado senador senadores camara tramitacion ficha completa', href:'buscador_avanzado.html'},
     {t:'🔜 Próxima elección: cuenta regresiva y resultados del Servel cuando se publiquen', id:'proxima-cta', keys:'proxima elección 2028 regionales municipales alcaldes gobernadores cuenta regresiva servel'},
     {t:'🏆 Ranking en simple: más presentes, más faltas, más gastan', id:'ranking', keys:'ranking top 10 mejores peores mas presentes faltan gastan austeros region'},
     {t:'🪑 Asistencia a las sesiones', id:'asistencia', keys:'asistencia faltas inasistencias sesiones quien falta'},
@@ -2074,7 +2084,7 @@ renderGastoBanc();
       }
     }
     if(!items.length){
-      html = `<div class="busq-vacio">Sin resultados para «${raw.trim()}». Prueba con un apellido (ej: Jiles, Kast), una ley (ej: fútbol), una fecha (ej: Año Nuevo), un ministro o una palabra del glosario (ej: quórum).</div>`;
+      html = `<div class="busq-vacio">Sin resultados en esta página para «${raw.trim()}».<br><a class="busq-avanzado-link" href="buscador_avanzado.html#q=${encodeURIComponent(raw.trim())}" style="display:inline-block; margin-top:8px; background:#ffd75e; color:#1d3a8f; font-weight:800; padding:7px 14px; border-radius:99px; text-decoration:none;">🔎 Buscar «${raw.trim()}» en el Buscador avanzado (Cámara, Senado y Gobierno en vivo) →</a></div>`;
     }
     panel.innerHTML = html;
     panel.classList.add('show');
@@ -2090,6 +2100,7 @@ renderGastoBanc();
     } else if(it.tipo==='bancada'){
       window.explorador.bancada(it.b.grupo);
     } else if(it.tipo==='seccion'){
+      if(it.s.href){ location.href = it.s.href; return; }
       irSeccion(it.s.id);
     } else if(it.tipo==='info' && it.it.fn){
       it.it.fn();
