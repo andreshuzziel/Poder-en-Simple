@@ -357,3 +357,21 @@ RESUMEN EN 1 LÍNEA POR PÁGINA
 
    Escritorio: .cont crece hasta min(1560px, 94vw) (1700px en 1800px+); nav con letra
    12px en una o dos filas centradas (wrap), sin scroll horizontal; en móvil 10px.
+
+=====================================================================
+PÁGINA 5: 🔎 BUSCADOR AVANZADO (IMPLEMENTADO) — buscador_avanzado.html
+=====================================================================
+   Botón "Buscador avanzado" junto a la barra de la portada + enlace en
+   los menús. Una caja por palabras clave → lista de resultados con
+   origen (Cámara/Senado/Gobierno) y tipo (proyecto, ley, diputad@,
+   senador/a, autoridad, noticia), filtros → ficha completa:
+   · Proyecto/ley: explicación simple, quién lo presentó, KPIs, pestañas
+     Resumen · Votaciones Cámara (voto por diputad@, por bancada, filtro
+     mi distrito) · Votaciones Senado (voto por senador/a, por partido,
+     pareos) · Tramitación paso a paso · Fuentes oficiales. Escuchar.
+   · Persona: diputad@ (asistencia, votos recientes → abre la ley),
+     senador/a, autoridad de Gobierno.
+   Sin base de datos: servidor.py (/api/buscar, /api/ficha) + buscador.py
+   consultan al momento; índice precalentado en RAM cada 15 min.
+   Tests: test_buscador_jsdom.js (46). Modo oscuro, responsive, enlaces
+   externos en pestaña nueva, títulos bajo la barra.

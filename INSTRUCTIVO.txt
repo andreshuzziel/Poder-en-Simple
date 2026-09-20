@@ -78,9 +78,25 @@ código.
   está en verde guarda un commit en git.
 
 ---------------------------------------------------------------------
+8. BUSCADOR AVANZADO (buscador_avanzado.html · ruta /buscador)
+---------------------------------------------------------------------
+  Busca por palabras clave en la Cámara, el Senado y el Gobierno y abre
+  la ficha completa (votación por diputad@ y por senador/a).
+  REQUIERE el modo en vivo (python3 servidor.py): la página estática
+  se ve, pero cada búsqueda consulta /api/buscar y /api/ficha, que
+  descargan las fuentes oficiales al momento (sin base de datos).
+  Motor: buscador.py (usa las funciones de servidor.py).
+  Al arrancar, el servidor precalienta el índice en RAM (~40 s) y lo
+  renueva cada 15 minutos. Fuentes: opendata Cámara (vía Mirada al
+  Congreso), tramitacion.senado.cl/wspublico (tramitación, votaciones
+  nominales del Senado, senador@s vigentes), LeyChile, Presidencia.
+  Regenerar la página: python3 gen_buscador_page.py
+  Pruebas: node test_buscador_jsdom.js (46) — incluidas en hito.sh.
+
+---------------------------------------------------------------------
 7. QUÉ SUBIR AL HOSTING
 ---------------------------------------------------------------------
   index.html · elecciones_chile.html · calendario_votaciones.html ·
-  proxima_eleccion.html · dashboard_congreso.html (redirección) ·
+  proxima_eleccion.html · buscador_avanzado.html · dashboard_congreso.html (redirección) ·
   datos_congreso.xlsx · audio_resumen.mp3
   servidor.py solo si el hosting ejecuta Python (modo en vivo).
