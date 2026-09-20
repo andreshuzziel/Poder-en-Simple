@@ -86,6 +86,11 @@ código.
   se ve, pero cada búsqueda consulta /api/buscar y /api/ficha, que
   descargan las fuentes oficiales al momento (sin base de datos).
   Motor: buscador.py (usa las funciones de servidor.py).
+  explicador.py traduce a lenguaje ciudadano cada observación de
+  votación y cada paso de tramitación (reglas de lectura del texto
+  oficial; lo usan el buscador, /api/votacion y gen_calendario.py).
+  /api/contexto y /api/votacion traen además, desde LeyChile, el texto
+  vigente de las leyes/artículos citados en lo que se votó.
   Al arrancar, el servidor precalienta el índice en RAM (~40 s) y lo
   renueva cada 15 minutos. Fuentes: opendata Cámara (vía Mirada al
   Congreso), tramitacion.senado.cl/wspublico (tramitación, votaciones
