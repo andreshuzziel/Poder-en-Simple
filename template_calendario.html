@@ -86,6 +86,8 @@
   .caja-ley b{color:var(--azul);}
   .caja-ley .q{margin-top:8px;}
   .btn-ficha{background:#1d3a8f !important; color:#fff !important; margin-top:10px;}
+  .simple{margin:8px 0 4px; padding:9px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#3d2e00; font-size:14.5px; line-height:1.6;}
+  body.dark .simple{background:#2a2410; border-color:#7a6320; color:#ffe9a8;}
   .obs{margin:8px 0 0; display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; font-size:14px;}
   .obs dt{font-weight:800; color:var(--azul); white-space:nowrap;}
   .obs dd{margin:0; line-height:1.55; overflow-wrap:anywhere;}
@@ -448,7 +450,7 @@ async function despuesEnVivo(v){
     let h = '<b>📡 Estado actual, consultado ahora mismo a las fuentes oficiales:</b> ';
     if(l && l.numero) h += `este proyecto <b>ya es ley</b>: <a href="${l.url}" target="_blank" rel="noopener">Ley N° ${l.numero}</a>${l.diario_oficial?` (Diario Oficial ${l.diario_oficial})`:''}. `;
     else if(s) h += `está en <b>${s.etapa||'tramitación'}</b>${s.subetapa && s.subetapa!=='/'?` (${s.subetapa})`:''}${s.estado?` · ${s.estado}`:''}${s.urgencia && !/sin urgencia/i.test(s.urgencia)?` · urgencia: ${s.urgencia}`:''}. `;
-    if(s && s.ultimo && s.ultimo.que) h += `Último movimiento (${s.ultimo.fecha}): ${s.ultimo.que}. `;
+    if(s && s.ultimo && s.ultimo.que) h += `Último movimiento (${s.ultimo.fecha}): ${s.ultimo.que}. ${s.ultimo.exp ? '<i>En simple: ' + s.ultimo.exp + '</i> ' : ''}`;
     if(vo && vo.total_votaciones) h += `Esta fue la votación <b>${vo.numero} de ${vo.total_votaciones}</b> que ha tenido el proyecto en la Sala de la Cámara. `;
     if(s && s.url) h += `<a href="${s.url}" target="_blank" rel="noopener">Tramitación oficial en senado.cl</a>`;
     caja.innerHTML = h + renderContexto(d.contexto);
@@ -495,15 +497,17 @@ function renderDetalle(v){
     const ingreso = p.ing ? ` Ingresó al Congreso el <b>${p.ing.split('-').reverse().join('/')}</b>.` : '';
     const o = v.obs || {};
     const filas = [
-      o.articulo ? ['📝 Lo que se votó (texto oficial completo)', o.articulo] : null,
+      o.articulo ? ['📝 Texto oficial completo', o.articulo] : null,
       o.tramite  ? ['🧭 Trámite constitucional', o.tramite + explicaTramite(o.tramite)] : null,
       o.informe  ? ['📄 Informe / etapa reglamentaria', o.informe + explicaInforme(o.informe)] : null,
       o.materias ? ['🏷️ Materias', o.materias] : null,
       v.quorum   ? ['⚖️ Quórum exigido', v.quorum + explicaQuorum(v.quorum)] : null,
       ['🗳️ Resultado', `${v.resultado}: ${v.si} a favor · ${v.no} en contra · ${v.abst} abstenciones`],
     ].filter(Boolean);
-    const aqui = (o.articulo || o.tramite || v.que)
+    const ex = v.exp || {};
+    const aqui = (o.articulo || o.tramite || v.que || ex.que)
       ? `<div class="q obs-full"><b>🎯 ¿Qué se está votando exactamente aquí?</b>
+          ${ex.que ? `<div class="simple"><b>💬 En simple:</b> ${ex.que}${ex.contexto ? ' ' + ex.contexto : ''}${ex.quorum ? ' ' + ex.quorum : ''}${ex.resultado ? ' <b>' + ex.resultado + '</b>' : ''}</div>` : ''}
           <dl class="obs">${filas.map(([k,val]) => `<dt>${k}</dt><dd>${val}</dd>`).join('')}</dl>
           ${!o.articulo && v.que ? `<div>${v.que}</div>` : ''}
           <div id="obs-vivo" class="obs-vivo"><span class="cargando"></span> Consultando en este momento qué pasó después con este proyecto (Senado, ley publicada)…</div>

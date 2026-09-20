@@ -59,6 +59,9 @@
   .ctx-art{margin-top:6px;} .ctx-art summary{cursor:pointer; font-weight:700; color:var(--azul);}
   .ctx-art pre{white-space:pre-wrap; font:inherit; font-size:13px; line-height:1.6; margin:6px 0 0; padding:8px 10px; background:#fff; border-radius:6px; border:1px solid #e3e9f7; max-height:420px; overflow:auto;}
   body.dark .ctx-norma{background:#1b2540; border-color:#34497a;} body.dark .ctx-art pre{background:#111a2e; border-color:#2f4370; color:#e4eaf7;}
+  .simple{margin-top:8px; padding:9px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#3d2e00; font-size:14px; line-height:1.6;}
+  body.dark .simple{background:#2a2410; border-color:#7a6320; color:#ffe9a8;}
+  .timeline .simple{font-size:13px; margin-top:5px;}
   .obs-txt{white-space:pre-line; line-height:1.55; overflow-wrap:anywhere;}
   .sugerencia{margin-top:8px; padding:8px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#5a4300; font-size:13px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .sugerencia .btn-sug{background:#1d3a8f; color:#fff; border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:700;}
@@ -359,7 +362,8 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? c.votaciones.slice().reverse().map((v,i) => `
     <div class="vot" data-vid="${esc(v.id)}">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.tramite||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
-      <div class="nota-metodo obs-txt"><b>Lo que se votó:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
+      ${v.exp?`<div class="simple">💬 <b>En simple, ¿qué se votó aquí?</b> ${esc(v.exp)}</div>`:''}
+      <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
       ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
       ${v.votos ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : `<div class="nota-metodo mt">Detalle por diputad@ disponible para las 6 votaciones más recientes de este proyecto.</div>`}
       <button class="btn-det btn-ctx" data-ctx="ctx-cam-${esc(v.id)}" data-texto="${esc((v.articulo||'') + ' ' + (v.materias||''))}">📚 Ver el contexto: qué dicen las leyes y artículos citados</button><div id="ctx-cam-${esc(v.id)}" class="det ctx" style="display:none"></div>
@@ -368,14 +372,15 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-senado">${sv.length ? sv.slice().reverse().map((v,i) => `
     <div class="vot">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.etapa||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
-      <div class="nota-metodo obs-txt"><b>Lo que se votó:</b> ${esc(v.tema||'')}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
+      ${v.exp?`<div class="simple">💬 <b>En simple, ¿qué se votó aquí?</b> ${esc(v.exp)}</div>`:''}
+      <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.tema||'')}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
       ${barra(v.si, v.no, v.abst)}
       <button class="btn-det" data-det="sen-${i}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i}" class="det" style="display:none"></div>
       <button class="btn-det btn-ctx" data-ctx="ctx-sen-${i}" data-texto="${esc(v.tema||'')}">📚 Ver el contexto: qué dicen las leyes y artículos citados</button><div id="ctx-sen-${i}" class="det ctx" style="display:none"></div>
     </div>`).join('') : '<div class="card mt">El Senado aún no registra votaciones en Sala para este proyecto (o todavía no ha llegado a esa cámara).</div>'}</div>`;
   // tramitación
   const tr = (s && s.tramites) || [];
-  html += `<div class="sub" id="s-tramite">${tr.length ? `<ul class="timeline mt">${tr.slice().reverse().slice(0,80).map(t => `<li class="${/senado/i.test(t.camara)?'sen':''}${/ley|promulg|publicad/i.test(t.que)?' ley':''}"><div class="f">${esc(t.fecha)} · ${esc(t.camara)} · ${esc(t.etapa)}</div><div class="q">${esc(t.que)}</div></li>`).join('')}</ul>${tr.length>80?`<p class="nota-metodo">Se muestran los últimos 80 de ${tr.length} pasos; el historial completo está en el sitio del Senado.</p>`:''}` : '<div class="card mt">No hay historial de tramitación disponible en este momento.</div>'}</div>`;
+  html += `<div class="sub" id="s-tramite">${tr.length ? `<ul class="timeline mt">${tr.slice().reverse().slice(0,80).map(t => `<li class="${/senado/i.test(t.camara)?'sen':''}${/ley|promulg|publicad/i.test(t.que)?' ley':''}"><div class="f">${esc(t.fecha)} · ${esc(t.camara)} · ${esc(t.etapa)}</div><div class="q">${esc(t.que)}</div>${t.exp?`<div class="simple">💬 <b>En simple:</b> ${esc(t.exp)}</div>`:''}</li>`).join('')}</ul>${tr.length>80?`<p class="nota-metodo">Se muestran los últimos 80 de ${tr.length} pasos; el historial completo está en el sitio del Senado.</p>`:''}` : '<div class="card mt">No hay historial de tramitación disponible en este momento.</div>'}</div>`;
   // fuentes
   html += `<div class="sub" id="s-fuentes"><div class="card mt enlaces"><b>Consulta la información oficial</b><br>
       ${c?`<a href="${esc(c.url)}" target="_blank" rel="noopener">🏛️ Tramitación en la Cámara de Diputados (camara.cl) ↗</a>`:''}

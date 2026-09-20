@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET
 from datetime import date
 from concurrent.futures import ThreadPoolExecutor
 
+import explicador
 import servidor as S   # reutiliza http_get / http_post_json / cached / fuentes vivas
 
 NS = S.NS
@@ -394,6 +395,7 @@ def _senado_tramitacion(bol_num):
         tram.append({'fecha': (t.findtext('FECHA') or '').strip(), 'sesion': (t.findtext('SESION') or '').strip(),
                      'que': (t.findtext('DESCRIPCIONTRAMITE') or '').strip(), 'etapa': (t.findtext('ETAPDESCRIPCION') or '').strip(),
                      'camara': (t.findtext('CAMARATRAMITE') or '').strip()})
+        tram[-1]['exp'] = explicador.explicar_tramite(tram[-1]['que'], tram[-1]['etapa'], tram[-1]['camara'])
     autores = [(a.findtext('PARLAMENTARIO') or '').strip() for a in p.findall('autores/autor')]
     urg = []
     for u in p.findall('urgencias/urgencia'):
@@ -417,6 +419,7 @@ def _senado_votaciones(bol_num):
         out.append({'sesion': g('SESION'), 'fecha': g('FECHA'), 'tema': g('TEMA'), 'si': int(g('SI') or 0), 'no': int(g('NO') or 0),
                     'abst': int(g('ABSTENCION') or 0), 'pareo': int(g('PAREO') or 0), 'quorum': g('QUORUM'), 'tipo': g('TIPOVOTACION'),
                     'etapa': g('ETAPA'), 'votos': votos})
+        out[-1]['exp'] = explicador.explicar_votacion_senado(out[-1])
     return out
 
 def ficha_proyecto(bol):
@@ -436,6 +439,10 @@ def ficha_proyecto(bol):
                          'tramite': txt(v, 'TramiteConstitucional'), 'tramite_regl': txt(v, 'TramiteReglamentario'),
                          'materias': txt(v, 'Materias')})
         vots.sort(key=lambda v: v['fecha'])
+        nombre_p = txt(e, 'Nombre')
+        for v in vots:
+            v['exp'] = explicador.explicar_votacion(v['articulo'], v['tramite'], v.get('tramite_regl', ''), v['quorum'], v['resultado'],
+                                                    v['si'], v['no'], v['abst'], 'Proyecto de Ley', nombre_p)['texto']
         autores = []
         for a in e.findall('c:Autores/c:ParlamentarioAutor', NS) + e.findall('c:Autores/c:Diputado', NS):
             n = ' '.join(x for x in [txt(a, 'Nombre'), txt(a, 'ApellidoPaterno'), txt(a, 'ApellidoMaterno')] if x)
@@ -568,7 +575,9 @@ def detalle_votacion(bol, vid=''):
         vots.sort(key=lambda v: v['fecha'])
         sel = next((v for v in vots if str(v['id']) == str(vid)), None) if vid else (vots[-1] if vots else None)
         if sel:
-            sel = dict(sel, numero=vots.index(sel) + 1, total_votaciones=len(vots))
+            sel = dict(sel, numero=vots.index(sel) + 1, total_votaciones=len(vots),
+                       exp=explicador.explicar_votacion(sel['articulo'], sel['tramite'], sel['informe'], sel['quorum'], sel['resultado'],
+                                                        sel['si'], sel['no'], sel['abst'], 'Proyecto de Ley', txt(e, 'Nombre')))
         out['votacion'] = sel
         out['proyecto'] = {'nombre': txt(e, 'Nombre'), 'ingreso': txt(e, 'FechaIngreso')[:10], 'iniciativa': txt(e, 'TipoIniciativa'),
                            'origen': txt(e, 'CamaraOrigen'), 'pid': txt(e, 'Id'),

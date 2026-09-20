@@ -117,6 +117,10 @@ if (vObs) {
   window.abrirDetalle(vObs.id);
   const dc = $('#det-contenido').textContent;
   t('la ficha muestra la observación íntegra, sin recortes', dc.includes(vObs.obs.articulo));
+  t('explica "en simple" qué se está votando (recuadro amarillo antes del texto oficial)', !!$('#det-contenido .simple') && /En simple/.test($('#det-contenido .simple').textContent) && $('#det-contenido .simple').textContent.length > 80);
+  const nExp = D.votaciones.filter(v => v.exp && v.exp.que).length;
+  t(`todas las votaciones del snapshot traen explicación en simple (${nExp}/${D.votaciones.length})`, nExp === D.votaciones.length);
+  t('las explicaciones distinguen tipos: cambios del Senado, indicaciones, inadmisibilidad, partes del proyecto', ['acepta los cambios que el Senado','propuesta para cambiar el texto','inadmisible','Se vota el artículo'].every(s => D.votaciones.some(v => v.exp && v.exp.que.includes(s))));
   t('explica trámite, informe, quórum y resultado en lista', $$('#det-contenido .obs dt').length >= 4 && /Resultado/.test(dc));
   t('trámite constitucional traducido a simple', /primera cámara|otra cámara|cambios que le hizo|acuerdo|observaciones del Presidente/.test(dc));
   t('caja "estado actual en vivo" presente', !!$('#obs-vivo'));

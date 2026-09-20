@@ -25,11 +25,11 @@ const FICHA = {
     autores: [], ministerios: ['Ministerio de Hacienda'], materias: ['Pensiones'], admisible:'true',
     votaciones: [
       {id:'1', fecha:'2024-01-24', si:80, no:70, abst:2, quorum:'Quórum Simple', resultado:'Aprobado', tipo:'General', articulo:'Idea de legislar', tramite:'Primer trámite constitucional'},
-      {id:'2', fecha:'2025-01-29', si:100, no:40, abst:10, quorum:'Quórum Calificado', resultado:'Aprobado', tipo:'Única', articulo:'Enmiendas del Senado', tramite:'Tercer trámite constitucional', votos: votosCam},
+      {id:'2', fecha:'2025-01-29', si:100, no:40, abst:10, quorum:'Quórum Calificado', resultado:'Aprobado', tipo:'Única', exp:'Se vota si la Cámara acepta los cambios que el Senado le hizo al proyecto que ella ya había aprobado.', articulo:'Enmiendas del Senado', tramite:'Tercer trámite constitucional', votos: votosCam},
     ],
     url: 'https://www.camara.cl/legislacion/proyectosdeley/tramitacion.aspx?prmID=16006'},
   senado: {boletin:'15480-13', titulo:'Crea un nuevo Sistema Mixto de Pensiones', ingreso:'07/11/2022', iniciativa:'Mensaje', origen:'C.Diputados', urgencia:'Sin urgencia', etapa:'Tramitación terminada', subetapa:' / ', ley:'Ley N° 21.735', diario_oficial:'26/03/2025', estado:'Publicado',
-    tramites: [{fecha:'07/11/2022', sesion:'/', que:'Ingreso de proyecto', etapa:'Primer trámite constitucional', camara:'C.Diputados'}, {fecha:'27/01/2025', sesion:'98/372', que:'Aprobado en general', etapa:'Segundo trámite constitucional', camara:'Senado'}, {fecha:'26/03/2025', sesion:'/', que:'Publicada la ley en el Diario Oficial', etapa:'Tramitación terminada', camara:'Senado'}],
+    tramites: [{fecha:'07/11/2022', sesion:'/', que:'Ingreso de proyecto', etapa:'Primer trámite constitucional', camara:'C.Diputados', exp:'El proyecto fue presentado oficialmente en la Cámara de Diputados. Aquí empieza su camino.'}, {fecha:'27/01/2025', sesion:'98/372', que:'Aprobado en general', etapa:'Segundo trámite constitucional', camara:'Senado'}, {fecha:'26/03/2025', sesion:'/', que:'Publicada la ley en el Diario Oficial', etapa:'Tramitación terminada', camara:'Senado'}],
     autores: [], urgencias: [], materias: ['Pensiones'], url: 'https://www.senado.cl/appsenado/templates/tramitacion/index.php?boletin_ini=15480'},
   senado_votaciones: [{sesion:'98/372', fecha:'27/01/2025', tema:'Proyecto de ley de pensiones. En votación en general.', si:40, no:7, abst:0, pareo:0, quorum:'Q.C.', tipo:'Discusión general', etapa:'Segundo trámite constitucional',
     votos: [{n:'Coloma C., Juan Antonio', v:'S'}, {n:'Kuschel S., Carlos Ignacio', v:'N'}, {n:'Araya G., Pedro', v:'S'}, {n:'Allende B., Isabel', v:'S'}]}],
@@ -131,6 +131,8 @@ function cargar(html){
   fc.querySelector('.subtabs [data-s="fuentes"]').click();
   const links = [...d.querySelectorAll('#s-fuentes a')];
   t('enlaces oficiales a camara.cl, senado.cl y LeyChile, en pestaña nueva', links.length === 3 && links.every(a => a.target === '_blank' && /noopener/.test(a.rel)) && /camara\.cl/.test(links[0].href) && /senado\.cl/.test(links[1].href) && /bcn\.cl/.test(links[2].href));
+  t('cada votación explica "en simple" qué se votó (recuadro amarillo)', /En simple, ¿qué se votó aquí\?/.test(d.querySelector('#s-camara').textContent) && /acepta los cambios que el Senado/.test(d.querySelector('#s-camara .simple').textContent));
+  t('la línea de tramitación explica cada paso en simple', /presentado oficialmente en la Cámara/.test(d.querySelector('#s-tramite .timeline .simple').textContent));
   const bctx = d.querySelector('#s-camara .btn-ctx');
   t('cada votación tiene botón "Ver el contexto" (leyes y artículos citados)', !!bctx && d.querySelectorAll('.btn-ctx').length >= 3);
   bctx.click(); await espera(120);
@@ -178,6 +180,30 @@ c = B.citas_en_texto('Modifica el decreto ley N°321, de 1925; los artículos 49
 print('|'.join(sorted(x['cita'] + ':' + ','.join(x['articulos']) for x in c)))`], {encoding:'utf8', cwd: __dirname});
   const citas = (pyc.stdout||'').trim();
   t('detecta DL 321, Código Penal (arts. 49-51), Ley 20.898 (art. 3) y DL 3.500 (art. 17) sin confundir "decreto ley" con "ley"', citas === ['Código Penal:49,50,51','Decreto Ley N° 3.500 (sistema de pensiones):17','Decreto Ley N° 321 (libertad condicional):','Ley N° 20.898:3'].sort().join('|'), citas);
+
+  console.log('== 7c. explicador (python): observaciones y trámites en simple ==');
+  const pye = require('child_process').spawnSync('python3', ['-c', `
+import explicador as E
+ok = 0
+r = E.explicar_votacion('Numeral 4) del artículo único del proyecto, cuya votación separada ha sido solicitada por el diputado X', 'Primer Trámite', 'Segundo Informe', 'Quórum Simple', 'Aprobado', 80, 20, 3, 'Proyecto de Ley', 'Reconoce el circo tradicional')
+ok += 'el numeral 4 del artículo único' in r['que'] and 'aparte' in r['que'] and 'primer trámite' in r['contexto'].lower() and 'artículo por artículo' in r['contexto'] and '80 votos a favor' in r['resultado']
+r = E.explicar_votacion('Modificaciones incorporadas por el Senado en el proyecto de ley que “X”.', 'Tercer Trámite', 'Sin Informe', 'Quórum Calificado', 'Rechazado', 70, 60, 0)
+ok += 'acepta los cambios que el Senado' in r['que'] and 'Comisión Mixta' in r['que'] and '78 votos' in r['quorum'] and 'no alcanzó el mínimo' in r['resultado']
+r = E.explicar_votacion('Reclamación de la declaración de inadmisibilidad de la indicación del diputado Y')
+ok += 'inadmisible' in r['que'] and 'No se vota el fondo' in r['que']
+r = E.explicar_votacion('Indicación renovada de la diputada Z, para reemplazar el artículo único por el siguiente')
+ok += 'propuesta para cambiar el texto' in r['que'] and 'renovada' in r['que']
+r = E.explicar_votacion('Observación número 2 de S.E. el Presidente de la República para suprimir el artículo 39 del proyecto.', 'Observaciones P. De La R.')
+ok += 'veto' in r['que']
+r = E.explicar_votacion('Proyecto de acuerdo que “Aprueba el Tratado entre Chile y Brasil”', tipo_proyecto='Proyecto de Acuerdo')
+ok += 'tratado' in r['que']
+ok += 'primera en revisar' in E.explicar_votacion('Artículo 58 transitorio del proyecto.', 'Primer Trámite')['contexto'] and 'entra en vigencia' in E.explicar_votacion('Artículo 58 transitorio del proyecto.')['que']
+ok += 'Comisión de Cultura, Patrimonio, Artes, Deportes y Recreación' in E.explicar_tramite('Cuenta de proyecto . Pasa a Comisión de Cultura, Patrimonio, Artes, Deportes y Recreación', '', 'Senado')
+ok += 'al Senado' in E.explicar_tramite('Oficio de ley a Cámara Revisora .', '', 'C.Diputados') and 'Presidente' in E.explicar_tramite('Oficio de ley al Ejecutivo.') and 'urgencia simple (30 días)' in E.explicar_tramite('Cuenta del Mensaje 22-374 que hace presente la urgencia Simple')
+ok += 'en general' in E.explicar_votacion_senado({'tema':'En votación en general el proyecto', 'tipo':'Discusión general', 'etapa':'Segundo trámite constitucional', 'quorum':'Q.C.', 'si':40, 'no':7, 'abst':0, 'pareo':2}) and '26 votos' in E.explicar_votacion_senado({'tema':'', 'tipo':'Discusión general', 'quorum':'Q.C.', 'si':40, 'no':7, 'pareo':2}) and 'pareo' in E.explicar_votacion_senado({'tema':'', 'tipo':'', 'quorum':'', 'si':1, 'no':0, 'pareo':2})
+print(ok, 10)`], {encoding:'utf8', cwd: __dirname});
+  const [oke, tote] = (pye.stdout || '0 0').trim().split(/\s+/).map(Number);
+  t(`explicador: ${oke}/${tote} casos (partes del proyecto, cambios del Senado, inadmisibilidad, indicaciones, veto, tratados, transitorios, trámites, Senado)`, oke === tote && tote > 0, pye.stderr && pye.stderr.slice(0, 300));
 
   console.log('== 8. tolerancia a faltas de ortografía ==');
   const E = new JSDOM(html, { runScripts:'dangerously', pretendToBeVisual:true, url:'https://localhost/buscador_avanzado.html', beforeParse(w4){ w4.scrollTo=()=>{}; w4.fetch = async u => ({ json: async () => (String(u).includes('q=pencion') || String(u).includes('q=pensiones')) ? Object.assign({}, BUSCAR, {sugerencia: String(u).includes('pencion') ? 'pensiones' : ''}) : BUSCAR }); }, virtualConsole: new VirtualConsole() });

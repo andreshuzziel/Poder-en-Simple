@@ -13,7 +13,8 @@ Fuentes (Mirada al Congreso sobre datos abiertos oficiales de la Cámara):
                              de ingreso y qué se votó en cada trámite (materias,
                              artículo, trámite constitucional/reglamentario, quórum)
 """
-import json, time, datetime, urllib.request
+import json
+import explicador, time, datetime, urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -158,7 +159,11 @@ def main():
             'boletin': bol, 'titulo': p.get('n'),
             'si': f['si'], 'no': f['no'], 'abst': f['abst'],
             'nominal': nominales.get(f['id']),
-            'que': vm.get('que'), 'quorum': vm.get('quorum'), 'obs': vm.get('obs')})
+            'que': vm.get('que'), 'quorum': vm.get('quorum'), 'obs': vm.get('obs'),
+            'exp': explicador.explicar_votacion((vm.get('obs') or {}).get('articulo'), (vm.get('obs') or {}).get('tramite'),
+                                                (vm.get('obs') or {}).get('informe'), vm.get('quorum'), f['resultado'],
+                                                f['si'], f['no'], f['abst'], f['tipo'], p.get('n'))})
+        out['votaciones'][-1]['exp'].pop('texto', None)   # 'texto' repite los otros campos: no se guarda
     json.dump(out, open(SALIDA, 'w'), ensure_ascii=False)
     print(f'OK {SALIDA} · {len(out["votaciones"])} votaciones · '
           f'{sum(1 for v in out["votaciones"] if v["nominal"])} con voto nominal · '
