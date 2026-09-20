@@ -17,6 +17,7 @@ const BUSCAR = {
     {tipo:'senador', origen:'senado', ref:'1110', titulo:'Pedro Araya Guerrero', detalle:'Senador/a · P.P.D. · Región de Antofagasta', estado:'En ejercicio', url:'https://www.senado.cl/x', score:10},
   ]
 };
+const DOCS = JSON.parse(fs.readFileSync(__dirname + '/test_documentos_fixture.json', 'utf8'));
 const dips = {}; for (let i = 1; i <= 155; i++) dips[String(i)] = {n: 'Diputad@ ' + i, g: ['UDI','PS','FA','RN','PC'][i % 5], p: 'X', dist: String((i % 28) + 1)};
 const votosCam = {}; for (let i = 1; i <= 150; i++) votosCam[String(i)] = i <= 100 ? 'S' : i <= 140 ? 'N' : 'A';
 const FICHA = {
@@ -52,6 +53,7 @@ function cargar(html){
         const u = String(url);
         let body = {};
         if (u.startsWith('/api/contexto')) body = {citas:[{cita:'Ley N° 21.325', titulo:'LEY DE MIGRACIÓN Y EXTRANJERÍA', tipo:'Ley', numero:'21325', publicacion:'2021-04-20', organismo:'MINISTERIO DEL INTERIOR', n_articulos:184, url:'https://www.bcn.cl/leychile/navegar?idNorma=1158549', articulos:[{n:'24', texto:'Artículo 24.- Forma de ingreso y egreso. La entrada de personas al territorio nacional…', derogado:false, version:'2021-04-20'}]}]};
+        else if (u.startsWith('/api/documentos')) body = DOCS;
         else if (u.startsWith('/api/buscar')) body = BUSCAR;
         else if (u.includes('tipo=proyecto')) body = FICHA;
         else if (u.includes('tipo=diputado')) body = PERSONA;
@@ -114,7 +116,7 @@ function cargar(html){
   t('boletín, ley y etapa como etiquetas', /Boletín 15480-13/.test(fc.textContent) && /Ley 21\.735/.test(fc.textContent) && /Tramitación terminada/.test(fc.textContent));
   t('explicación en simple', /En simple/.test(d.querySelector('#explica').textContent) && /Ya es ley/.test(d.querySelector('#explica').textContent));
   t('KPIs: ingreso, quién propuso, votaciones Cámara y Senado', fc.querySelectorAll('.kpi').length >= 4 && /Votaciones en la Cámara/.test(fc.textContent) && /Votaciones en el Senado/.test(fc.textContent));
-  t('5 pestañas (resumen, cámara, senado, tramitación, fuentes)', fc.querySelectorAll('.subtabs button').length === 5);
+  t('6 pestañas (resumen, cámara, senado, tramitación, documentos, fuentes)', fc.querySelectorAll('.subtabs button').length === 6);
   t('resumen: quién lo presentó (Gobierno) y ministerio', /Presidente de la República/.test(d.querySelector('#s-resumen').textContent) && /Hacienda/.test(d.querySelector('#s-resumen').textContent));
   // cámara
   fc.querySelector('.subtabs [data-s="camara"]').click();
@@ -166,6 +168,19 @@ function cargar(html){
     d.querySelector('#btn-escuchar').click();
     t('Escuchar lee también las explicaciones "en simple" de las votaciones', /Votaciones, en simple/.test(hablado) && /acepta los cambios que el Senado/.test(hablado) && !/Explicación automática/.test(hablado));
   }
+  console.log('== 3b. pestaña Documentos oficiales (leídos en memoria, en segundo plano) ==');
+  await espera(150);
+  t('pestaña "Documentos oficiales" con conteo de leídos', !!fc.querySelector('.subtabs button[data-s=docs]') && /\(4\)/.test(fc.querySelector('#docs-n').textContent));
+  fc.querySelector('.subtabs button[data-s=docs]').click(); await espera(20);
+  const sd = fc.querySelector('#s-docs');
+  t('al abrirla se ven 4 tarjetas de documentos (veto primero)', sd.classList.contains('on') && sd.querySelectorAll('.doc-card').length === 4 && sd.querySelector('.doc-card').dataset.tipo === 'VETO');
+  t('veto: observaciones con artículo, qué propone y fundamento', /AL ARTÍCULO 32/.test(sd.textContent) && /Propone eliminar/.test(sd.textContent) && /anatocismo/i.test(sd.textContent));
+  t('mensaje original: qué problema busca resolver', /problema busca resolver/i.test(sd.textContent));
+  t('informe de comisión: quiénes expusieron y cómo votó la comisión', /expusieron/i.test(sd.textContent) && /votó la comisión/i.test(sd.textContent));
+  t('leyes citadas y botón al documento oficial, en pestaña nueva', sd.querySelectorAll('a.btn-oficial[href*="verDoc"][target=_blank][rel=noopener]').length === 4 && !!sd.querySelector('.doc-citas a[target=_blank]'));
+  t('aviso de que nada se guarda', /No se guarda ning[úu]n archivo/.test(sd.textContent));
+  fc.querySelector('.subtabs button[data-s=resumen]').click(); await espera(10);
+
   console.log('== 4. volver y ficha de persona ==');
   d.querySelector('#btn-volver').click();
   t('volver muestra la lista con los mismos resultados', d.querySelector('#resultados').style.display === '' && d.querySelectorAll('#lista .item').length === 4);
@@ -182,7 +197,7 @@ function cargar(html){
 
   console.log('== 5. ley publicada abre la ficha del proyecto (por su boletín) ==');
   d.querySelector('#btn-volver').click(); d.querySelectorAll('#lista .item')[1].click(); await espera(200);
-  t('ley 21.735 → ficha completa del boletín 15480-13 con votaciones', /Boletín 15480-13/.test(fc.textContent) && fc.querySelectorAll('.subtabs button').length === 5);
+  t('ley 21.735 → ficha completa del boletín 15480-13 con votaciones', /Boletín 15480-13/.test(fc.textContent) && fc.querySelectorAll('.subtabs button').length === 6);
 
   console.log('== 6. modo oscuro y arranque por URL ==');
   d.querySelector('#dark-toggle').click();

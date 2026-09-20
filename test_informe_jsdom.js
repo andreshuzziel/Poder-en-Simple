@@ -6,6 +6,7 @@ let pass = 0, fail = 0;
 const t = (name, cond, extra='') => { if (cond) { pass++; console.log('  ✔', name); } else { fail++; console.log('  ✘', name, extra); } };
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const FIX = JSON.parse(fs.readFileSync(__dirname + '/test_informe_fixture.json', 'utf8'));
+const DOCS = JSON.parse(fs.readFileSync(__dirname + '/test_documentos_fixture.json', 'utf8'));
 
 function cargar(html, opts={}){
   const errs = [];
@@ -19,6 +20,7 @@ function cargar(html, opts={}){
         if (opts.falla) throw new Error('sin conexión');
         let body = {error:'boletín no encontrado'};
         if (u.startsWith('/api/informe') && /15480-13/.test(u)) body = FIX;
+        else if (u.startsWith('/api/documentos')) { if (opts.sinDocs) throw new Error('documentos no disponibles'); body = DOCS; }
         return { json: async () => body, ok: true };
       };
     }});
@@ -58,7 +60,7 @@ function cargar(html, opts={}){
   t('título de la página cambia al proyecto', /Informe · /.test(d.title));
   t('deep link actualizado', /#boletin=15480-13/.test(w.location.hash));
   const caps = [...d.querySelectorAll('#cuerpo section.cap')];
-  t('10 capítulos en orden (portada + 9)', caps.length === 10 && caps.map(s=>s.id).join(',') === 'portada,ficha,tramitacion,camara,senado,indicaciones,vetos,urgencias,normas,fuentes', caps.map(s=>s.id).join(','));
+  t('11 capítulos en orden (portada + 10, incl. documentos oficiales)', caps.length === 11 && caps.map(s=>s.id).join(',') === 'portada,ficha,tramitacion,camara,senado,indicaciones,vetos,urgencias,documentos,normas,fuentes', caps.map(s=>s.id).join(','));
   t('índice lateral con enlace a cada capítulo', caps.every(s => d.querySelector(`#indice a[href="#${s.id}"]`)));
   const portada = d.querySelector('#portada').textContent;
   t('portada: nombre, boletín, ley y estado', /Pensiones/i.test(portada) && /15480-13/.test(portada) && /21\.735/.test(portada) && /Publicad/i.test(portada));
@@ -127,6 +129,44 @@ function cargar(html, opts={}){
   t('todos los enlaces externos del informe abren en pestaña nueva', [...d.querySelectorAll('#cuerpo a[href^="http"]')].every(a => a.target === '_blank' && /noopener/.test(a.rel)));
   t('sin "undefined"/"null"/NaN visibles', !/undefined|null|NaN/.test(d.querySelector('#cuerpo').textContent));
   t('sin instrucciones técnicas en el informe', !/python3|gen_|\.json|hito/.test(d.querySelector('#cuerpo').textContent));
+
+  console.log('== 5b. documentos oficiales leídos en memoria (segundo plano) ==');
+  t('el informe se muestra antes de terminar de leer documentos', d.querySelector('#informe').style.display !== 'none');
+  t('llamó a /api/documentos con boletín y pid', (w.__urls||[]).some(u => /\/api\/documentos\?boletin=15480-13&pid=16006/.test(u)));
+  await espera(150);
+  const dc = d.querySelector('#doc-cuerpo');
+  t('KPIs: documentos publicados, leídos, leyes citadas', dc.querySelectorAll('.kpi').length === 3 && /24/.test(dc.textContent) && /le[ií]dos ahora/.test(dc.textContent));
+  const cards = [...dc.querySelectorAll('.doc-card')];
+  t('una tarjeta por documento leído (4) con etiqueta y fecha', cards.length === 4 && cards.every(c => c.querySelector('.doc-tag')));
+  t('orden: veto primero, luego mensaje, luego informes', cards.map(c => c.dataset.tipo).join(',') === 'VETO,INICIATIVA,INFORMEPLEY,INFORMEPLEY');
+  const cv = cards[0];
+  t('veto: resumen en simple y cada observación con su artículo y qué propone', /3 observaciones/.test(cv.textContent) && /AL ARTÍCULO 32/.test(cv.textContent) && /Propone eliminar/.test(cv.textContent));
+  t('veto: fundamento del Presidente por observación (anatocismo, olvido financiero)', /anatocismo/i.test(cv.textContent) && /olvido financiero/i.test(cv.textContent));
+  t('veto: firmantes', /KAST/.test(cv.textContent) && /Ministro de Hacienda/.test(cv.textContent));
+  const ci = cards[1];
+  t('mensaje original: qué problema busca resolver y qué propone', /problema busca resolver/i.test(ci.textContent) && /crecimiento/i.test(ci.textContent) && /propone/i.test(ci.textContent));
+  const cinf = cards[2];
+  t('informe de comisión: quiénes expusieron y cómo votó la comisión', /expusieron/i.test(cinf.textContent) && /votó la comisión/i.test(cinf.textContent) && /votos a favor|aprobada|rechazada/i.test(cinf.textContent));
+  t('cada tarjeta indica cuántos caracteres se leyeron en memoria y el formato', cards.every(c => /Leído en memoria: [\d\.]+ caracteres \((PDF|DOCX|DOC)\)/.test(c.textContent)));
+  t('leyes citadas con enlace oficial (LeyChile/BCN) en pestaña nueva', cards.some(c => c.querySelector('.doc-citas a[target=_blank][rel=noopener][href*="bcn.cl"], .doc-citas a[target=_blank][rel=noopener][href*="leychile"]')));
+  t('botón para abrir el documento oficial en camara.cl (pestaña nueva)', cards.every(c => c.querySelector('a.btn-oficial[href*="camara.cl/verDoc"][target=_blank][rel=noopener]')));
+  t('lista de otros documentos publicados no leídos', /Otros 3 documentos/.test(dc.textContent));
+  t('aviso: leídos en el momento, nada se guarda', /No se guarda ning[úu]n archivo/.test(dc.textContent));
+  t('capítulo 6: el texto exacto del oficio de veto se integra junto a las votaciones del veto', /Qué dice exactamente el oficio de veto/.test(d.querySelector('#doc-veto').textContent) && /AL ARTÍCULO 40/.test(d.querySelector('#doc-veto').textContent));
+  t('capítulo 1: la ficha suma "según el mensaje o moción original"', /Según el mensaje o moción original/.test(d.querySelector('#doc-iniciativa').textContent) && /problema busca resolver/i.test(d.querySelector('#doc-iniciativa').textContent));
+  t('índice muestra cuántos documentos se leyeron', /4/.test((d.querySelector('#indice a[href="#documentos"] .n')||{}).textContent||''));
+  t('sin undefined/null en documentos', !/undefined|null|NaN/.test(dc.textContent));
+  const E = cargar(html, {hash:'#boletin=15480-13', sinDocs:true}); await espera(400);
+  t('si los documentos fallan, el informe sigue completo y solo ese capítulo avisa con Reintentar', E.doc.querySelector('#informe').style.display !== 'none' && E.doc.querySelectorAll('#cuerpo section.cap').length === 11 && /No se pudieron leer los documentos/.test(E.doc.querySelector('#doc-cuerpo').textContent) && !!E.doc.querySelector('#btn-re-doc'));
+
+  console.log('== 5c. recolector de documentos (python, sin red): extracción y análisis ==');
+  const py = require('child_process').spawnSync('python3', ['test_documentos.py'], {encoding:'utf8', cwd: __dirname});
+  const rs = (py.stdout||'').trim();
+  t('DOCX de veto: 2 observaciones (reemplazar/eliminar), fundamento por artículo, firmantes, resumen', /^\[true/.test(rs), rs + (py.stderr||'').slice(-300));
+  t('PDF: extrae texto y detecta la materia del oficio', /^\[true, true/.test(rs));
+  t('rechaza descargar desde dominios no oficiales', /^\[true, true, true/.test(rs));
+  t('convierte fechas "12 Ago. 2026" a ISO', /^\[true, true, true, true/.test(rs));
+  t('informe de comisión: objetivo, expositores y votación en comisión', rs === '[true, true, true, true, true]', rs);
 
   console.log('== 6. índice, imprimir, ejemplos, dark ==');
   d.querySelector('#indice a[href="#vetos"]').click(); await espera(20);

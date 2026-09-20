@@ -164,6 +164,18 @@
   body.dark nav.tabs{background:#121828; border-bottom-color:#293450;}
   body.dark nav.tabs a{color:#c8d2e8;} body.dark nav.tabs a:hover{background:#212b46;}
   body.dark .caja-busq input{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
+  .doc-slot{margin-top:12px;}
+  .doc-card{background:var(--tarjeta); border:1px solid var(--borde); border-left:5px solid var(--azul); border-radius:14px; padding:14px 16px; margin-top:12px;}
+  .doc-card h4{margin:12px 0 4px; font-size:14px; color:var(--azul);}
+  .doc-cab{font-size:14px; line-height:1.4;}
+  .doc-tag{display:inline-block; background:#eef2fd; color:var(--azul); border-radius:8px; padding:2px 8px; font-weight:800; font-size:12.5px; margin-right:4px;} body.dark .doc-tag{background:#25314f; color:#dfe6f5;}
+  .doc-etapa{color:var(--texto2); font-weight:600;}
+  .doc-p{white-space:pre-line; font-size:14px; line-height:1.55; margin:6px 0;}
+  .doc-lista{margin:4px 0 4px 18px; padding:0; font-size:13.5px; line-height:1.5;} .doc-lista .n{color:var(--texto2);}
+  .doc-obs{border-top:1px dashed var(--borde); padding:8px 0; font-size:14px;}
+  .doc-citas{font-size:13px; margin-top:8px; line-height:1.7;}
+  .doc-link{font-weight:700; color:var(--azul);}
+  .doc-kpis{margin-bottom:6px;}
   body.dark .filtros button, body.dark .subtabs button, body.dark .btn-volver, body.dark .btn-det, body.dark .filtro-voto button, body.dark #btn-escuchar{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
   body.dark .filtros button.on, body.dark .subtabs button.on, body.dark .filtro-voto button.on{background:var(--azul2); color:#fff;}
   body.dark .filtro-voto input{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
@@ -336,6 +348,7 @@ async function abrir(r){
     if(d.error) throw new Error(d.error);
     fc.innerHTML = (tipo==='proyecto') ? fichaProyecto(d, r) : fichaPersona(d, r);
     activarSubtabs(); activarVotos(d); marcarGlosario(fc);
+    if(tipo==='proyecto') cargarDocumentos(d);
     try{ history.replaceState(null, '', `#q=${encodeURIComponent(ultimaQ)}&tipo=${tipo}&ref=${encodeURIComponent(ref)}`); }catch(e){}
   }catch(e){
     fc.innerHTML = `<h2 class="tit">${esc(r.titulo)}</h2><div class="aviso">⚠️ No fue posible descargar la ficha en este momento (${esc(e.message)}). ${r.url?`Puedes verla en la fuente oficial: <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>`:''}</div>`;
@@ -376,6 +389,7 @@ function fichaProyecto(d, r){
       <button data-s="camara">🏛️ Votaciones Cámara (${nCam})</button>
       <button data-s="senado">🏛️ Votaciones Senado (${nSen})</button>
       <button data-s="tramite">🧭 Tramitación paso a paso</button>
+      <button data-s="docs">📄 Documentos oficiales <span id="docs-n"></span></button>
       <button data-s="fuentes">🔗 Fuentes oficiales</button>
     </div>`;
   // resumen
@@ -418,6 +432,7 @@ function fichaProyecto(d, r){
   const tr = (s && s.tramites) || [];
   html += `<div class="sub" id="s-tramite">${tr.length ? `<ul class="timeline mt">${tr.slice().reverse().slice(0,80).map(t => `<li class="${/senado/i.test(t.camara)?'sen':''}${/ley|promulg|publicad/i.test(t.que)?' ley':''}"><div class="f">${esc(t.fecha)} · ${esc(t.camara)} · ${esc(t.etapa)}</div><div class="q">${esc(t.que)}</div>${t.exp?`<div class="simple">💬 <b>En simple:</b> ${esc(t.exp)}</div>`:''}</li>`).join('')}</ul>${tr.length>80?`<p class="nota-metodo">Se muestran los últimos 80 de ${tr.length} pasos; el historial completo está en el sitio del Senado.</p>`:''}` : '<div class="card mt">No hay historial de tramitación disponible en este momento.</div>'}</div>`;
   // fuentes
+  html += `<div class="sub" id="s-docs"><p class="nota-metodo mt">El sistema descarga y lee en memoria los informes de comisión, oficios, boletines de indicaciones, el mensaje original y el oficio de veto que la Cámara publica para este proyecto, y resume aquí lo que aportan. Nada se guarda.</p><div id="doc-cuerpo"><div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales… (15 a 60 segundos; el resto de la ficha ya está disponible)</div></div></div>`;
   html += `<div class="sub" id="s-fuentes"><div class="card mt enlaces"><b>Consulta la información oficial</b><br>
       ${c?`<a href="${esc(c.url)}" target="_blank" rel="noopener">🏛️ Tramitación en la Cámara de Diputados (camara.cl) ↗</a>`:''}
       ${s?`<a href="${esc(s.url)}" target="_blank" rel="noopener">🏛️ Tramitación en el Senado (senado.cl) ↗</a>`:''}
@@ -442,6 +457,73 @@ function explicar(c, s, sv, ley){
   const nc = c ? c.votaciones.length : 0;
   if(nc || sv.length) t.push(`Ha tenido <b>${nc}</b> votación${nc===1?'':'es'} en la Cámara y <b>${sv.length}</b> en el Senado; abajo puedes ver cómo votó cada diputad@ y cada senador/a.`);
   return t.join(' ');
+}
+function parr(s, max){ s = String(s||''); if(!s) return ''; return `<p class="doc-p">${esc(max && s.length>max ? s.slice(0,max)+'…' : s)}</p>`; }
+function docCitas(citas){
+  if(!citas || !citas.length) return '';
+  return `<div class="doc-citas"><b>📚 Leyes citadas en este documento:</b> ${citas.map(c => c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.cita)}</a>` : esc(c.cita)).join(' · ')}</div>`;
+}
+function docCard(doc){
+  const a = doc.analisis || {};
+  let cuerpo = '';
+  if(doc.error){
+    cuerpo = `<div class="nota-metodo">⚠️ No se pudo leer este documento en este momento. Puedes abrirlo en la fuente oficial.</div>`;
+  }else if(doc.escaneado){
+    cuerpo = `<div class="nota-metodo">Este documento es una imagen escaneada: se puede abrir, pero no tiene texto que el sistema pueda leer.</div>`;
+  }else if(doc.doc_tipo === 'VETO'){
+    cuerpo += a.resumen ? `<div class="simple"><b>💬 En simple:</b> ${esc(a.resumen)}</div>` : '';
+    cuerpo += a.fundamento ? `<details class="mas"><summary>Por qué el Presidente observó el proyecto (fundamento general)</summary><div>${parr(a.fundamento)}</div></details>` : '';
+    cuerpo += (a.observaciones||[]).map(o => `<div class="doc-obs"><b>Observación ${o.numero} · ${esc(o.titulo)}</b>${o.texto?` — ${esc(o.texto)}`:''}${o.en_simple?`<div class="simple">💬 ${esc(o.en_simple)}</div>`:''}${o.fundamento?`<details class="mas"><summary>Fundamento que dio el Presidente para esta observación</summary><div>${parr(o.fundamento)}</div></details>`:''}</div>`).join('');
+    cuerpo += a.firman && a.firman.length ? `<div class="nota-metodo">Firman: ${esc(a.firman.join(' · '))}</div>` : '';
+  }else if(doc.doc_tipo === 'INICIATIVA'){
+    cuerpo += a.fundamentos ? `<h4>Qué problema busca resolver (según el mensaje o moción)</h4>${parr(a.fundamentos, 2500)}` : '';
+    cuerpo += a.objetivos ? `<h4>Qué propone concretamente</h4>${parr(a.objetivos, 2500)}` : '';
+    cuerpo += (!a.fundamentos && !a.objetivos && a.resumen) ? parr(a.resumen) : '';
+  }else if(doc.doc_tipo === 'INFORMEPLEY'){
+    cuerpo += a.objetivo ? `<h4>Objetivo o idea matriz, según la comisión</h4>${parr(a.objetivo, 1800)}` : '';
+    cuerpo += a.expositores && a.expositores.length ? `<h4>Quiénes expusieron ante la comisión</h4><ul class="doc-lista">${a.expositores.slice(0,15).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : '';
+    cuerpo += a.votaciones_comision && a.votaciones_comision.length ? `<h4>Cómo votó la comisión</h4><ul class="doc-lista">${a.votaciones_comision.slice(0,12).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : '';
+    cuerpo += a.quorum ? `<details class="mas"><summary>Normas con quórum especial (según la comisión)</summary><div>${parr(a.quorum)}</div></details>` : '';
+    cuerpo += a.corte_suprema ? `<details class="mas"><summary>Consulta a la Corte Suprema</summary><div>${parr(a.corte_suprema)}</div></details>` : '';
+    cuerpo += a.asistencia ? `<details class="mas"><summary>Asistencia e invitados (texto del informe)</summary><div>${parr(a.asistencia)}</div></details>` : '';
+  }else if(doc.doc_tipo === 'INDICACIONPLEY'){
+    cuerpo += a.n_indicaciones_aprox ? `<div class="simple"><b>💬 En simple:</b> Se registran alrededor de ${fmt(a.n_indicaciones_aprox)} indicaciones (propuestas de cambio) en este boletín.</div>` : '';
+    cuerpo += a.autores && a.autores.length ? `<h4>Quiénes las presentaron</h4><ul class="doc-lista">${a.autores.slice(0,10).map(x=>`<li>${esc(x[0])} <span class="n">(${fmt(x[1])})</span></li>`).join('')}</ul>` : '';
+    cuerpo += a.articulos_tocados && a.articulos_tocados.length ? `<details class="mas"><summary>Artículos a los que apuntan</summary><div>${esc(a.articulos_tocados.join(' · '))}</div></details>` : '';
+  }else{
+    cuerpo += a.materia ? `<div><b>Materia:</b> ${esc(a.materia)}</div>` : '';
+    cuerpo += (a.de || a.para) ? `<div class="nota-metodo">${a.de?`<b>De:</b> ${esc(a.de)} `:''}${a.para?`<b>Para:</b> ${esc(a.para)}`:''}</div>` : '';
+    cuerpo += a.resumen ? parr(a.resumen) : '';
+  }
+  if(!cuerpo && doc.extracto) cuerpo = `<details class="mas"><summary>Primeras líneas del documento</summary><div>${parr(doc.extracto)}</div></details>`;
+  return `<div class="doc-card" data-tipo="${esc(doc.doc_tipo)}">
+    <div class="doc-cab"><span class="doc-tag">${esc(doc.etiqueta)}</span> <b>${esc(doc.titulo || doc.nombre_archivo || 'Documento oficial')}</b>${doc.fecha?` · ${esc(doc.fecha)}`:''}${doc.etapa?` · <span class="doc-etapa">${esc(doc.etapa)}</span>`:''}</div>
+    <div class="nota-metodo">${esc(doc.que_es||'')}${doc.caracteres?` · Leído en memoria: ${fmt(doc.caracteres)} caracteres (${esc((doc.formato||'').toUpperCase())}).`:''}</div>
+    ${cuerpo}${docCitas(doc.citas)}
+    <a class="btn-oficial" href="${esc(doc.url)}" target="_blank" rel="noopener">Abrir el documento oficial en camara.cl ↗</a>
+  </div>`;
+}
+async function cargarDocumentos(d){
+  const caja = $('#doc-cuerpo'); if(!caja) return;
+  const pid = (d.camara||{}).pid || '';
+  if(!pid){ caja.innerHTML = '<div class="card mt">La Cámara de Diputadas y Diputados no publica documentos para este boletín (puede haberse tramitado solo en el Senado).</div>'; return; }
+  try{
+    const r = await fetch(`/api/documentos?boletin=${encodeURIComponent(d.boletin)}&pid=${encodeURIComponent(pid)}`);
+    const j = await r.json(); if(j.error) throw new Error(j.error);
+    const docs = j.documentos || [];
+    if(!docs.length){ caja.innerHTML = '<div class="card mt">La Cámara aún no publica informes, oficios ni otros documentos para este proyecto.</div>'; return; }
+    const orden = {VETO:0, INICIATIVA:1, INFORMEPLEY:2, INDICACIONPLEY:3, OFICIOPLEY:4};
+    docs.sort((a,b) => (orden[a.doc_tipo]??9) - (orden[b.doc_tipo]??9) || String(b.fecha||'').localeCompare(String(a.fecha||'')));
+    caja.innerHTML = `<div class="nota-metodo"><b>${fmt(j.total_documentos)}</b> documentos publicados · <b>${fmt(j.analizados)}</b> leídos ahora en memoria · <b>${fmt(docs.reduce((s,x)=>s+((x.citas||[]).length),0))}</b> leyes citadas detectadas</div>`
+      + docs.map(docCard).join('')
+      + ((j.otros||[]).length ? `<details class="mas"><summary>Otros ${fmt(j.otros.length)} documentos publicados (no leídos en esta consulta)</summary><ul class="doc-lista">${j.otros.map(o => `<li>${esc(o.etiqueta)} · ${esc(o.titulo||'')}${o.fecha?` · ${esc(o.fecha)}`:''}${o.etapa?` · ${esc(o.etapa)}`:''} — <a href="${esc(o.url)}" target="_blank" rel="noopener">abrir ↗</a></li>`).join('')}</ul></details>` : '')
+      + `<p class="nota-metodo mt">${esc(j.nota||'')} Los resúmenes se extraen automáticamente del texto oficial; ante cualquier duda, el documento manda.</p>`;
+    const n = $('#docs-n'); if(n) n.textContent = `(${fmt(j.analizados)})`;
+    marcarGlosario(caja);
+  }catch(e){
+    caja.innerHTML = `<div class="nota-metodo">⚠️ No se pudieron leer los documentos oficiales en este momento (${esc(e.message)}). <button type="button" class="btn-reintentar" id="btn-re-doc">↻ Reintentar</button></div>`;
+    const b = $('#btn-re-doc'); if(b) b.addEventListener('click', () => { caja.innerHTML = '<div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales…</div>'; cargarDocumentos(d); });
+  }
 }
 function activarSubtabs(){
   $$('.subtabs button').forEach(b => b.addEventListener('click', () => {

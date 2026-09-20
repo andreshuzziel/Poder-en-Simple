@@ -127,3 +127,21 @@ código.
 - Test: NODE_PATH=/tmp/jst/node_modules node test_informe_jsdom.js  (usa test_informe_fixture.json,
   respuesta real recortada de /api/informe 15480-13). Incluido en hito.sh.
 - Imprimir / guardar PDF: botón en la página (estilos @media print).
+
+=== RECOLECTOR DE DOCUMENTOS OFICIALES (documentos.py) ===
+- Al abrir un proyecto (informe o ficha del buscador) la página llama en segundo plano a
+  /api/documentos?boletin=NNNNN-NN&pid=<id interno Cámara>. servidor.py → documentos.recolectar(pid, bol):
+  lee las pestañas públicas de camara.cl (informes / oficios / indicaciones / veto + mensaje o moción),
+  descarga en RAM hasta 8 documentos (prioridad: veto, mensaje, informes recientes, indicaciones, oficios),
+  extrae texto (PDF con pypdf; DOCX con zipfile; DOC 97-2003 con lector propio + olefile) y arma:
+  veto → observaciones (artículo, qué propone, fundamento por artículo, firmantes);
+  mensaje → problema que resuelve / qué propone; informes → objetivo, expositores, votación en comisión,
+  quórum, Corte Suprema; indicaciones → autores y artículos; oficios → materia/de/para/resumen;
+  + leyes citadas (buscador.contexto_texto). Solo dominios oficiales (lista blanca). Nada en disco;
+  caché RAM 15 min (TTL_CACHE) para no bajar dos veces el mismo proyecto.
+- Dependencias: pip install pypdf olefile   (ya instaladas en el entorno del servidor).
+- Prueba manual: python3 documentos.py <pid> <boletin>   (ej. 18872 18216-05; ~30 s).
+- Pruebas sin red: python3 test_documentos.py (la llama test_informe_jsdom.js). Fixture real recortada:
+  test_documentos_fixture.json (usada por test_informe_jsdom.js y test_buscador_jsdom.js).
+- Límites: PDFs escaneados no tienen texto (se avisa); el Senado no publica listado de documentos por
+  proyecto en sus datos abiertos, por eso se usan los de la Cámara (que incluye informes del Senado).

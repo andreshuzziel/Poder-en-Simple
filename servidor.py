@@ -38,6 +38,21 @@ def http_get(url, timeout=30, tries=2):
             last = e; time.sleep(1)
     raise last
 
+def http_get_bytes(url, timeout=60, tries=2, max_bytes=25_000_000):
+    """GET binario (PDF/DOCX oficiales). Se mantiene solo en memoria; nunca se escribe en disco."""
+    last = None
+    for _ in range(tries):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept-Encoding': 'gzip'})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read(max_bytes)
+                if r.headers.get('Content-Encoding') == 'gzip':
+                    data = gzip.GzipFile(fileobj=io.BytesIO(data)).read()
+                return data, (r.headers.get('Content-Type') or ''), (r.headers.get('Content-Disposition') or '')
+        except Exception as e:
+            last = e; time.sleep(1)
+    raise last
+
 def http_post_json(url, payload, timeout=40, tries=2):
     body = json.dumps(payload).encode()
     last = None
@@ -868,6 +883,21 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e)}, 500)
+        elif p.path == '/api/documentos':      # documentos oficiales del proyecto leídos en memoria (informes, oficios, veto, mensaje)
+            qs = urllib.parse.parse_qs(p.query)
+            bol = qs.get('boletin', [''])[0].strip(); pid = qs.get('pid', [''])[0].strip(); fecha = qs.get('fecha', [''])[0].strip()
+            try:
+                import documentos, buscador
+                if not pid:
+                    f = buscador.ficha_proyecto(bol)
+                    pid = ((f.get('camara') or {}).get('pid')) or ''
+                if not pid:
+                    self._json({'error': 'La Cámara no tiene ficha para este boletín; no hay documentos que leer.', 'documentos': []}); return
+                # RAM de corta duración: si dos personas abren el mismo proyecto no se descarga dos veces
+                self._json(cached(f'docs:{pid}:{bol}:{fecha}', lambda: documentos.recolectar(pid, bol, fecha)))
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self._json({'error': str(e), 'documentos': []}, 500)
         elif p.path in ('/informe', '/informe_proyecto.html'):
             try:
                 html = open('/home/user/informe_proyecto.html', 'rb').read()
