@@ -55,6 +55,9 @@
   .ejemplos{margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; color:#dbe4ff;}
   .ejemplos button{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; padding:4px 11px; border-radius:99px; font-size:12px; cursor:pointer;}
   .ejemplos button:hover{background:rgba(255,255,255,.26);}
+  .sugerencia{margin-top:8px; padding:8px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#5a4300; font-size:13px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .sugerencia .btn-sug{background:#1d3a8f; color:#fff; border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:700;}
+  body.dark .sugerencia{background:#2a2410; border-color:#7a6320; color:#ffe9a8;}
   /* filtros y lista */
   .filtros{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; align-items:center;}
   .filtros button{border:1px solid var(--borde); background:#fff; padding:6px 12px; border-radius:99px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--texto2);}
@@ -242,9 +245,13 @@ async function buscar(q){
     RES = d.resultados || [];
     $('#filtros').style.display = RES.length ? 'flex' : 'none';
     pintarLista();
-    $('#estado').innerHTML = RES.length
+    const sug = d.sugerencia && d.sugerencia.toLowerCase() !== q.toLowerCase()
+      ? `<div class="sugerencia">✏️ Buscamos también como <b>«${esc(d.sugerencia)}»</b> (tolera faltas de ortografía). <button type="button" class="btn-sug" data-q="${esc(d.sugerencia)}">Buscar exactamente «${esc(d.sugerencia)}»</button></div>` : '';
+    $('#estado').innerHTML = (RES.length
       ? `<b>${fmt(d.total)}</b> resultado${d.total===1?'':'s'} para «${esc(q)}» · ${esc(d.fuentes||'')}`
-      : `Sin resultados para «${esc(q)}». Prueba con otra palabra, el número de boletín (ej. 17757-29) o el número de ley (ej. ley 21735).`;
+      : `Sin resultados para «${esc(q)}» (probamos también con variantes de ortografía). Prueba con otra palabra, el número de boletín (ej. 17757-29) o el número de ley (ej. ley 21735).`) + sug;
+    const bs = $('#estado').querySelector('.btn-sug');
+    if(bs) bs.addEventListener('click', ()=>{ $('#q').value = bs.dataset.q; buscar(bs.dataset.q); });
   }catch(e){
     $('#estado').innerHTML = `⚠️ No se pudo consultar en este momento (${esc(e.message)}). Este buscador necesita el modo en vivo (servidor encendido) porque consulta las fuentes oficiales al instante.`;
   }

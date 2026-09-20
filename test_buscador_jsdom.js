@@ -164,6 +164,26 @@ function cargar(html){
   await espera(150);
   t('explica que necesita el modo en vivo', /modo en vivo/.test(D.window.document.querySelector('#estado').textContent));
 
+  console.log('== 8. tolerancia a faltas de ortografía ==');
+  const E = new JSDOM(html, { runScripts:'dangerously', pretendToBeVisual:true, url:'https://localhost/buscador_avanzado.html', beforeParse(w4){ w4.scrollTo=()=>{}; w4.fetch = async u => ({ json: async () => (String(u).includes('q=pencion') || String(u).includes('q=pensiones')) ? Object.assign({}, BUSCAR, {sugerencia: String(u).includes('pencion') ? 'pensiones' : ''}) : BUSCAR }); }, virtualConsole: new VirtualConsole() });
+  const ed = E.window.document;
+  ed.querySelector('#q').value = 'pencion'; ed.querySelector('#form').dispatchEvent(new E.window.Event('submit', {cancelable:true}));
+  await espera(150);
+  t('con "pencion" igual muestra resultados', ed.querySelectorAll('#lista .item').length === BUSCAR.resultados.length);
+  const sg = ed.querySelector('#estado .sugerencia');
+  t('avisa que se buscó como «pensiones» (tolera faltas de ortografía)', !!sg && /pensiones/.test(sg.textContent) && /ortograf/i.test(sg.textContent));
+  const bsug = ed.querySelector('#estado .btn-sug');
+  t('botón para buscar la palabra corregida', !!bsug);
+  bsug.click(); await espera(150);
+  t('al pulsarlo, la caja queda con la palabra corregida y desaparece el aviso', ed.querySelector('#q').value === 'pensiones' && !ed.querySelector('#estado .sugerencia'));
+  // motor python: pruebas unitarias de la coincidencia aproximada
+  const py = require('child_process').spawnSync('python3', ['-c', `
+import buscador as B
+casos = [('pencion','sistema de pensiones',1),('condisional','libertad condicional',1),('biolencia','violencia intrafamiliar',1),('trasporte','ley de transportes',1),('educasion','calidad de la educacion',1),('comicion','comision de hacienda',1),('seguridá','ley de seguridad',1),('kast','castillo',0),('pensiones','futbol',0),('gato','pago',0)]
+print(sum(1 for q,tx,esp in casos if (B.puntaje(tx, B.tokens(q), q) > 0) == bool(esp)), len(casos))`], {encoding:'utf8', cwd: __dirname});
+  const [okn, totn] = (py.stdout || '0 0').trim().split(/\s+/).map(Number);
+  t(`motor: ${okn}/${totn} casos de ortografía (b/v, s/c, h, letras cambiadas) correctos y sin falsos positivos`, okn === totn && totn > 0);
+
   console.log(`\nRESULTADO: ${pass} pass, ${fail} fail`);
   process.exit(fail ? 1 : 0);
 })();

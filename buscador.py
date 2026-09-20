@@ -44,16 +44,82 @@ def _raiz(k):
     k = re.sub(r'(ciones|iones)$', 'cion', k)
     return re.sub(r'(es|as|os|s|a|o)$', '', k) if len(k) > 5 else k
 
-def puntaje(texto, toks, q):
-    """TODAS las palabras clave deben aparecer (como palabra o raíz); la frase exacta suma."""
+def fonetica(w):
+    """Forma 'como suena' para tolerar faltas de ortografía típicas del español:
+    b/v, s/c/z, h muda, ll/y, qu/k/c, g/j, letras dobles, i/y final."""
+    w = norm(w)
+    w = w.replace('h', '')
+    w = re.sub(r'c(?=[ei])', 's', w)
+    w = re.sub(r'g(?=[ei])', 'j', w)
+    w = w.replace('qu', 'k').replace('ck', 'k').replace('c', 'k')
+    w = w.replace('z', 's').replace('x', 's')
+    w = w.replace('v', 'b').replace('ll', 'y').replace('w', 'u')
+    w = re.sub(r'y$', 'i', w)
+    w = re.sub(r'(.)\1+', r'\1', w)     # letras repetidas: comision/commision, ocurre/ocure
+    return w
+
+def _distancia(a, b, maximo):
+    """Distancia de edición (Levenshtein) con corte temprano."""
+    if abs(len(a) - len(b)) > maximo:
+        return maximo + 1
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        if min(cur) > maximo:
+            return maximo + 1
+        prev = cur
+    return prev[-1]
+
+def _tolerancia(k):
+    return 0 if len(k) < 6 else (1 if len(k) < 9 else 2)
+
+def _coincide(k, t):
+    """¿La palabra clave k está en el texto normalizado t? Devuelve (True/False, palabra_del_texto_que_coincidió).
+    1) exacta o raíz · 2) fonética (b/v, s/c/z, h…) · 3) tecleo con 1-2 letras cambiadas."""
+    if k in t or _raiz(k) in t:
+        return True, None
+    palabras = set(re.findall(r'[a-z]{3,}', t))
+    fk = fonetica(k); rfk = _raiz(fk)
+    for w in palabras:
+        fw = fonetica(w)
+        if fw == fk or (len(rfk) >= 5 and fw.startswith(rfk) and len(fw) <= len(rfk) + 3):
+            return True, w
+    tol = _tolerancia(k)
+    if tol:
+        rk = _raiz(k)
+        mejor = None
+        for w in palabras:
+            # mismo arranque (2 letras, o 3 si toleramos 2 cambios) para no confundir palabras distintas
+            if abs(len(w) - len(k)) > tol or fonetica(w[:tol + 1]) != fonetica(k[:tol + 1]):
+                continue
+            d = min(_distancia(k, w, tol), _distancia(rk, _raiz(w), tol))
+            if d <= tol and (mejor is None or d < mejor[0]):
+                mejor = (d, w)
+        if mejor:
+            return True, mejor[1]
+    return False, None
+
+def puntaje(texto, toks, q, hits=None):
+    """TODAS las palabras clave deben aparecer (exacta, raíz, fonética o con 1-2 letras de diferencia); la frase exacta suma.
+    Las coincidencias aproximadas puntúan menos y quedan anotadas en `hits` (para sugerir 'quizás quisiste decir')."""
     if not toks:
         return 0
     t = norm(texto)
+    sc = 0
     for k in toks:
-        if k not in t and _raiz(k) not in t:
+        ok, w = _coincide(k, t)
+        if not ok:
             return 0
+        if w is None:
+            sc += 10
+        else:
+            sc += 6
+            if hits is not None:
+                hits.setdefault(k, {}); hits[k][w] = hits[k].get(w, 0) + 1
     frase = norm(q)
-    return len(toks) * 10 + (25 if frase and frase in t else 0)
+    return sc + (25 if frase and frase in t else 0)
 
 def es_boletin(q):
     m = re.search(r'(\d{3,5})\s*[-–]\s*(\d{1,2})', q)
@@ -170,6 +236,7 @@ def buscar(q, limite=60):
     q = (q or '').strip()
     toks = tokens(q)
     res = []
+    hits = {}
     if not q:
         return {'q': q, 'resultados': [], 'nota': 'Escribe una palabra clave, un número de boletín o de ley.'}
 
@@ -184,7 +251,7 @@ def buscar(q, limite=60):
     try:
         va = _votaciones_anio()
         for bol, info in va['proyectos'].items():
-            sc = puntaje(info['nombre'] + ' ' + bol, toks, q) + (500 if nl and False else 0)
+            sc = puntaje(info['nombre'] + ' ' + bol, toks, q, hits) + (500 if nl and False else 0)
             if (b and bol.startswith(b)) or sc:
                 vs = [v for v in va['votaciones'] if v['desc'].endswith(bol)]
                 ult = max(vs, key=lambda v: v['fecha']) if vs else None
@@ -204,7 +271,7 @@ def buscar(q, limite=60):
                     if r.get('ref') == bol and r['tipo'] == 'proyecto' and info['etapa']:
                         r['estado'] = info['etapa'][:48]; r['detalle'] += (' · Ley ' + info['ley'].replace('Ley N° ', '')) if info['ley'] else ''
                 continue
-            sc = puntaje(info['titulo'] + ' ' + bol + ' ' + ' '.join(info['materias']), toks, q)
+            sc = puntaje(info['titulo'] + ' ' + bol + ' ' + ' '.join(info['materias']), toks, q, hits)
             if nl and info['ley'].replace('Ley N° ', '').replace('.', '') == nl:
                 sc += 950
             if (b and bol.startswith(b)) or sc:
@@ -219,7 +286,7 @@ def buscar(q, limite=60):
         for l in _leyes() or []:
             num = str(l.get('nro_norma', '')); tit = l.get('titulo_norma', ''); ident = l.get('identif_norma', '')
             t = f"Ley {num} {tit} {ident}"
-            sc = puntaje(t, toks, q)
+            sc = puntaje(t, toks, q, hits)
             if nl and num == nl:
                 sc += 900
             if sc:
@@ -237,7 +304,7 @@ def buscar(q, limite=60):
         for did, d in (pad.items() if isinstance(pad, dict) else ((x['id'], x) for x in pad)):
             d = dict(d, id=did)
             t = f"{d.get('nombre','')} {d.get('partido','')} {d.get('grupo','')} distrito {d.get('distrito','')}"
-            sc = puntaje(t, toks, q)
+            sc = puntaje(t, toks, q, hits)
             if sc:
                 res.append({'tipo': 'diputado', 'origen': 'camara', 'ref': str(d.get('id')), 'titulo': d.get('nombre', ''),
                             'detalle': f"Diputad@ · {d.get('partido','')} · Distrito {d.get('distrito','')}", 'fecha': '', 'estado': 'En ejercicio', 'score': sc})
@@ -248,7 +315,7 @@ def buscar(q, limite=60):
     try:
         for s in _senadores():
             t = f"{s['nombre']} {s['partido']} {s['region']} circunscripcion {s['circ']}"
-            sc = puntaje(t, toks, q)
+            sc = puntaje(t, toks, q, hits)
             if sc:
                 res.append({'tipo': 'senador', 'origen': 'senado', 'ref': s['id'], 'titulo': s['nombre'],
                             'detalle': f"Senador/a · {s['partido']} · {s['region']}", 'fecha': '', 'estado': 'En ejercicio', 'url': s['url'], 'score': sc})
@@ -261,12 +328,12 @@ def buscar(q, limite=60):
     try:
         g = _gobierno()
         pres = g.get('presidente', {})
-        if pres and (puntaje(f"presidente {pres.get('nombre','')}", toks, q) or (not toks and 'presidente' in qn)):
+        if pres and (puntaje(f"presidente {pres.get('nombre','')}", toks, q, hits) or (not toks and 'presidente' in qn)):
             res.append({'tipo': 'autoridad', 'origen': 'gobierno', 'ref': 'presidente', 'titulo': pres.get('nombre', ''), 'detalle': 'Presidente de la República',
-                        'fecha': pres.get('desde', ''), 'estado': 'En ejercicio', 'url': pres.get('fuente', ''), 'score': puntaje(f"presidente {pres.get('nombre','')}", toks, q) + 20})
+                        'fecha': pres.get('desde', ''), 'estado': 'En ejercicio', 'url': pres.get('fuente', ''), 'score': puntaje(f"presidente {pres.get('nombre','')}", toks, q, hits) + 20})
         for m in g.get('gabinete', []):
             t = f"{m.get('ministerio','')} {m.get('ministro','')} {m.get('cargo','')}"
-            sc = puntaje(t, toks, q) or (30 if (not toks and cargo_gob) else 0)
+            sc = puntaje(t, toks, q, hits) or (30 if (not toks and cargo_gob) else 0)
             if sc and cargo_gob:
                 sc += 40
             if sc:
@@ -279,7 +346,7 @@ def buscar(q, limite=60):
     try:
         for org, lst in (_noticias() or {}).items():
             for n in lst:
-                sc = puntaje(n.get('titulo', '') + ' ' + n.get('resumen', ''), toks, q)
+                sc = puntaje(n.get('titulo', '') + ' ' + n.get('resumen', ''), toks, q, hits)
                 if sc:
                     res.append({'tipo': 'noticia', 'origen': {'camara': 'camara', 'senado': 'senado'}.get(org, 'gobierno'), 'ref': n.get('url', ''),
                                 'titulo': n.get('titulo', ''), 'detalle': n.get('resumen', '')[:180], 'fecha': n.get('fecha', ''), 'estado': 'Noticia oficial', 'url': n.get('url', ''), 'score': sc})
@@ -288,7 +355,15 @@ def buscar(q, limite=60):
 
     res.sort(key=lambda r: (-r.get('score', 0), r.get('fecha', '')), reverse=False)
     res = [r for r in res if r.get('score', 0) != 0]
+    # sugerencia ortográfica: la palabra real más frecuente por cada palabra clave aproximada
+    sug = []
+    for k in toks:
+        if k in hits and hits[k]:
+            mejor = max(hits[k].items(), key=lambda kv: kv[1])[0]
+            sug.append((k, mejor))
+    sugerencia = ' '.join(dict(sug).get(k, k) for k in toks) if sug else ''
     return {'q': q, 'total': len(res), 'resultados': res[:limite],
+            'sugerencia': sugerencia if sugerencia and sugerencia != ' '.join(toks) else '',
             'fuentes': 'Cámara de Diputados (datos abiertos) · Senado (tramitacion.senado.cl) · LeyChile/BCN · Presidencia — consultadas en este momento, sin base de datos.'}
 
 # ----------------------------------------------------------------- FICHA DE PROYECTO / LEY
