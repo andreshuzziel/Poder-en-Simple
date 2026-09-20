@@ -85,6 +85,17 @@
   .caja-ley{background:#eef4ff; border:1px solid #cfdcf9; border-left:5px solid var(--azul2); border-radius:12px; padding:16px 18px; margin-top:16px; font-size:14px; line-height:1.65;}
   .caja-ley b{color:var(--azul);}
   .caja-ley .q{margin-top:8px;}
+  .btn-ficha{background:#1d3a8f !important; color:#fff !important; margin-top:10px;}
+  .obs{margin:8px 0 0; display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; font-size:14px;}
+  .obs dt{font-weight:800; color:var(--azul); white-space:nowrap;}
+  .obs dd{margin:0; line-height:1.55; overflow-wrap:anywhere;}
+  .obs-vivo{margin-top:10px; padding:9px 12px; border-radius:10px; background:#eef4ff; border:1px solid #c7d6f7; font-size:13.5px; line-height:1.55;}
+  .obs-vivo a{color:var(--azul2); font-weight:700;}
+  body.dark .obs-vivo{background:#16213a; border-color:#2f4370; color:#dfe6f5;}
+  body.dark .obs dt{color:#9fb8ff;}
+  .cargando{display:inline-block; width:12px; height:12px; border:2px solid #9fb8ff; border-top-color:transparent; border-radius:50%; animation:gira .8s linear infinite; vertical-align:-2px;}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  @media (max-width:560px){ .obs{grid-template-columns:1fr;} .obs dt{margin-top:6px;} }
   .btn-oficial{display:inline-block; margin-top:14px; background:var(--azul); color:#fff; font-weight:800; font-size:14px; text-decoration:none; padding:11px 22px; border-radius:12px; box-shadow:0 4px 14px rgba(29,58,143,.3); transition:.2s;}
   .btn-oficial:hover{background:var(--azul2); transform:translateY(-1px);}
   .btn-volver{border:1px solid var(--borde); background:#fff; color:var(--azul); font-weight:800; font-size:13.5px; padding:8px 16px; border-radius:10px; cursor:pointer;}
@@ -385,6 +396,47 @@ function abrirDetalle(id){
   renderDetalle(v);
   window.scrollTo({top:0});
 }
+function explicaTramite(s){
+  s = (s||'').toLowerCase();
+  if(s.includes('primer')) return ' — es la primera cámara que revisa el proyecto.';
+  if(s.includes('segundo')) return ' — la otra cámara ya lo revisó y ahora le toca a esta.';
+  if(s.includes('tercer')) return ' — la Cámara revisa los cambios que le hizo el Senado.';
+  if(s.includes('mixta')) return ' — diputad@s y senador@s buscan un acuerdo sobre las diferencias.';
+  if(s.includes('veto') || s.includes('observaci')) return ' — se votan observaciones del Presidente al texto aprobado.';
+  return '';
+}
+function explicaInforme(s){
+  s = (s||'').toLowerCase();
+  if(s.includes('primer')) return ' — la comisión revisó el proyecto por primera vez y la Sala vota su idea general.';
+  if(s.includes('segundo')) return ' — la comisión ya revisó las indicaciones (cambios propuestos) y la Sala vota artículo por artículo.';
+  if(s.includes('sin informe')) return ' — se vota directamente en la Sala, sin un informe previo de comisión.';
+  return '';
+}
+function explicaQuorum(s){
+  s = (s||'').toLowerCase();
+  if(s.includes('simple')) return ' — basta la mayoría de l@s presentes.';
+  if(s.includes('calificado')) return ' — necesita la mayoría absoluta de l@s 155 diputad@s en ejercicio (78 votos).';
+  if(s.includes('orgánic') || s.includes('organic')) return ' — necesita 4/7 de l@s diputad@s en ejercicio (89 votos).';
+  if(s.includes('reforma') || s.includes('constitu')) return ' — reforma constitucional: necesita 4/7 (89 votos), o 2/3 (104) en algunos capítulos.';
+  return '';
+}
+async function despuesEnVivo(v){
+  const caja = document.getElementById('obs-vivo'); if(!caja || !v.boletin) return;
+  try{
+    const r = await fetch(`/api/votacion?boletin=${encodeURIComponent(v.boletin)}&id=${encodeURIComponent(v.id)}`);
+    const d = await r.json(); if(d.error) throw new Error(d.error);
+    const s = d.senado, l = d.ley, vo = d.votacion;
+    let h = '<b>📡 Estado actual, consultado ahora mismo a las fuentes oficiales:</b> ';
+    if(l && l.numero) h += `este proyecto <b>ya es ley</b>: <a href="${l.url}" target="_blank" rel="noopener">Ley N° ${l.numero}</a>${l.diario_oficial?` (Diario Oficial ${l.diario_oficial})`:''}. `;
+    else if(s) h += `está en <b>${s.etapa||'tramitación'}</b>${s.subetapa && s.subetapa!=='/'?` (${s.subetapa})`:''}${s.estado?` · ${s.estado}`:''}${s.urgencia && !/sin urgencia/i.test(s.urgencia)?` · urgencia: ${s.urgencia}`:''}. `;
+    if(s && s.ultimo && s.ultimo.que) h += `Último movimiento (${s.ultimo.fecha}): ${s.ultimo.que}. `;
+    if(vo && vo.total_votaciones) h += `Esta fue la votación <b>${vo.numero} de ${vo.total_votaciones}</b> que ha tenido el proyecto en la Sala de la Cámara. `;
+    if(s && s.url) h += `<a href="${s.url}" target="_blank" rel="noopener">Tramitación oficial en senado.cl</a>`;
+    caja.innerHTML = h;
+  }catch(e){
+    caja.innerHTML = 'ℹ️ El estado actual (Senado / ley publicada) se muestra cuando la página funciona en modo en vivo.';
+  }
+}
 function renderDetalle(v){
   const titulo = v.titulo || (v.boletin ? `Boletín N° ${v.boletin}` : v.desc);
   const chipRes = v.resultado==='Aprobado' ? '<span class="chip aprobado">✔ APROBADO</span>'
@@ -422,9 +474,24 @@ function renderDetalle(v){
       : (p.ini ? `<b>Iniciativa:</b> ${p.ini}.` : '');
     const origen = p.origen ? ` Entró por la <b>${p.origen}</b>.` : '';
     const ingreso = p.ing ? ` Ingresó al Congreso el <b>${p.ing.split('-').reverse().join('/')}</b>.` : '';
-    const aqui = v.que
-      ? `<div class="q">🎯 <b>¿Qué se está votando exactamente aquí?</b> ${v.que}${v.quorum ? ' · <b>Quórum:</b> ' + v.quorum : ''}.</div>`
+    const o = v.obs || {};
+    const filas = [
+      o.articulo ? ['📝 Lo que se votó (texto oficial completo)', o.articulo] : null,
+      o.tramite  ? ['🧭 Trámite constitucional', o.tramite + explicaTramite(o.tramite)] : null,
+      o.informe  ? ['📄 Informe / etapa reglamentaria', o.informe + explicaInforme(o.informe)] : null,
+      o.materias ? ['🏷️ Materias', o.materias] : null,
+      v.quorum   ? ['⚖️ Quórum exigido', v.quorum + explicaQuorum(v.quorum)] : null,
+      ['🗳️ Resultado', `${v.resultado}: ${v.si} a favor · ${v.no} en contra · ${v.abst} abstenciones`],
+    ].filter(Boolean);
+    const aqui = (o.articulo || o.tramite || v.que)
+      ? `<div class="q obs-full"><b>🎯 ¿Qué se está votando exactamente aquí?</b>
+          <dl class="obs">${filas.map(([k,val]) => `<dt>${k}</dt><dd>${val}</dd>`).join('')}</dl>
+          ${!o.articulo && v.que ? `<div>${v.que}</div>` : ''}
+          <div id="obs-vivo" class="obs-vivo"><span class="cargando"></span> Consultando en este momento qué pasó después con este proyecto (Senado, ley publicada)…</div>
+          <a class="btn-oficial btn-ficha" href="buscador_avanzado.html#q=${encodeURIComponent(v.boletin||'')}&tipo=proyecto&ref=${encodeURIComponent(v.boletin||'')}">🔎 Ver la ficha completa: todas las votaciones de la Cámara y del Senado, autores y tramitación</a>
+        </div>`
       : (v.quorum ? `<div class="q">🎯 <b>Quórum requerido:</b> ${v.quorum}.</div>` : '');
+    if (o.articulo || o.tramite || v.que) setTimeout(() => despuesEnVivo(v), 0);
     html += `
     <div class="caja-ley">
       📜 <b>¿De qué trata este proyecto?</b><br>

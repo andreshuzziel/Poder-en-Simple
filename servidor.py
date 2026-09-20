@@ -860,6 +860,13 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e), 'resultados': []}, 500)
+        elif p.path == '/api/votacion':        # observación completa de una votación (en vivo, sin base de datos)
+            qs = urllib.parse.parse_qs(p.query)
+            try:
+                import buscador
+                self._json(buscador.detalle_votacion(qs.get('boletin', [''])[0], qs.get('id', [''])[0]))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
         elif p.path == '/api/ficha':           # ficha completa: proyecto/ley (Cámara + Senado) o persona
             qs = urllib.parse.parse_qs(p.query)
             tipo = qs.get('tipo', ['proyecto'])[0]; ref = qs.get('ref', [''])[0]

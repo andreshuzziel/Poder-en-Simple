@@ -50,7 +50,7 @@ $('#dia-lista .voto-item[data-id="' + target.id + '"]').dispatchEvent(new window
 t('ficha abre (otra vista)', $('#vista-detalle').style.display !== 'none' && $('#vista-calendario').style.display === 'none');
 t('ficha muestra título del proyecto', $('#det-contenido').textContent.length > 200);
 t('ficha explica de qué trata el proyecto', $('#det-contenido').textContent.includes('¿De qué trata este proyecto?'));
-const oficial = $('#det-contenido .btn-oficial');
+const oficial = $('#det-contenido .btn-oficial:not(.btn-ficha)');
 t('ficha tiene enlace oficial del Congreso', !!oficial && /camara\.cl\/legislacion\/proyectosdeley\/tramitacion\.aspx\?prmID=\d+/.test(oficial.getAttribute('href')), oficial ? oficial.getAttribute('href') : 'sin botón');
 t('ficha indica qué se está votando', $('#det-contenido').textContent.includes('¿Qué se está votando exactamente aquí?') || $('#det-contenido').textContent.includes('Quórum'));
 t('ficha muestra los 4 KPIs (favor/contra/abst/ausente)', $$('#det-contenido .kpi').length === 4);
@@ -110,6 +110,23 @@ if (vAnt) { window.abrirDetalle(vAnt.id); const nSNA = vAnt.nominal.S.length + v
 const vAct = D.votaciones.find(v => v.nominal && v.fecha >= '2026-03-11');
 window.abrirDetalle(vAct.id); t('votación actual: 155 chips con ausencias reales', $$('#det-dips .dip').length === 155);
 
-console.log(`\nRESULTADO: ${pass} pass, ${fail} fail`);
-process.exit(fail ? 1 : 0);
+console.log('== 9. observación completa de lo que se vota ==');
+const vObs = D.votaciones.filter(v => v.obs && v.obs.articulo && v.obs.articulo.length > 240).sort((a,b) => b.obs.articulo.length - a.obs.articulo.length)[0];
+t('el snapshot guarda el texto oficial completo (hay observaciones de más de 240 caracteres)', !!vObs);
+if (vObs) {
+  window.abrirDetalle(vObs.id);
+  const dc = $('#det-contenido').textContent;
+  t('la ficha muestra la observación íntegra, sin recortes', dc.includes(vObs.obs.articulo));
+  t('explica trámite, informe, quórum y resultado en lista', $$('#det-contenido .obs dt').length >= 4 && /Resultado/.test(dc));
+  t('trámite constitucional traducido a simple', /primera cámara|otra cámara|cambios que le hizo|acuerdo|observaciones del Presidente/.test(dc));
+  t('caja "estado actual en vivo" presente', !!$('#obs-vivo'));
+  t('enlace a la ficha completa en el buscador avanzado (con boletín)', !!$(`#det-contenido a[href*="buscador_avanzado.html#q=${encodeURIComponent(vObs.boletin)}"]`));
+}
+setTimeout(() => {
+  const ov = $('#obs-vivo');
+  t('sin servidor, la caja en vivo explica que necesita el modo en vivo', !!ov && /modo en vivo/.test(ov.textContent));
+  console.log(`\nRESULTADO: ${pass} pass, ${fail} fail`);
+  process.exit(fail ? 1 : 0);
+}, 300);
+return;
 }, 500);

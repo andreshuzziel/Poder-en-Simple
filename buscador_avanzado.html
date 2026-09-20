@@ -55,6 +55,7 @@
   .ejemplos{margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; color:#dbe4ff;}
   .ejemplos button{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; padding:4px 11px; border-radius:99px; font-size:12px; cursor:pointer;}
   .ejemplos button:hover{background:rgba(255,255,255,.26);}
+  .obs-txt{white-space:pre-line; line-height:1.55; overflow-wrap:anywhere;}
   .sugerencia{margin-top:8px; padding:8px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#5a4300; font-size:13px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .sugerencia .btn-sug{background:#1d3a8f; color:#fff; border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:700;}
   body.dark .sugerencia{background:#2a2410; border-color:#7a6320; color:#ffe9a8;}
@@ -354,7 +355,7 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? c.votaciones.slice().reverse().map((v,i) => `
     <div class="vot" data-vid="${esc(v.id)}">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.tramite||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
-      <div class="nota-metodo">${esc(v.articulo||'Votación del proyecto')}${v.quorum?' · Quórum: '+esc(v.quorum):''}</div>
+      <div class="nota-metodo obs-txt"><b>Lo que se votó:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
       ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
       ${v.votos ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : `<div class="nota-metodo mt">Detalle por diputad@ disponible para las 6 votaciones más recientes de este proyecto.</div>`}
     </div>`).join('') : '<div class="card mt">Este proyecto no registra votaciones en la Sala de la Cámara de Diputados (puede estar en comisión o haber comenzado en el Senado).</div>'}</div>`;
@@ -362,7 +363,7 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-senado">${sv.length ? sv.slice().reverse().map((v,i) => `
     <div class="vot">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.etapa||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
-      <div class="nota-metodo">${esc((v.tema||'').slice(0,260))}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
+      <div class="nota-metodo obs-txt"><b>Lo que se votó:</b> ${esc(v.tema||'')}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
       ${barra(v.si, v.no, v.abst)}
       <button class="btn-det" data-det="sen-${i}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i}" class="det" style="display:none"></div>
     </div>`).join('') : '<div class="card mt">El Senado aún no registra votaciones en Sala para este proyecto (o todavía no ha llegado a esa cámara).</div>'}</div>`;

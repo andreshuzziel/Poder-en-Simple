@@ -97,8 +97,10 @@ def info_proyecto(bol):
                 e = vp.find('c:' + t, NS)
                 return (e.text or '').strip() if e is not None else ''
             partes = [g2('Materias'), g2('TramiteConstitucional'), g2('TramiteReglamentario'), g2('Articulo')]
-            que = ' · '.join(p for p in partes if p)[:240]
-            vot[g2('Fecha')[:16]] = {'que': que or None, 'quorum': g2('Quorum') or None}
+            que = ' · '.join(p for p in partes if p)          # texto COMPLETO de la observación oficial (sin recortar)
+            vot[g2('Fecha')[:16]] = {'que': que or None, 'quorum': g2('Quorum') or None,
+                                     'obs': {'materias': g2('Materias') or None, 'tramite': g2('TramiteConstitucional') or None,
+                                             'informe': g2('TramiteReglamentario') or None, 'articulo': g2('Articulo') or None}}
         return {'n': txt('Nombre') or None, 'cid': txt('Id') or None,
                 'ini': (ti.text or '').strip() if ti is not None else '',
                 'aut': autores[:15], 'ing': txt('FechaIngreso')[:10] or None,
@@ -156,7 +158,7 @@ def main():
             'boletin': bol, 'titulo': p.get('n'),
             'si': f['si'], 'no': f['no'], 'abst': f['abst'],
             'nominal': nominales.get(f['id']),
-            'que': vm.get('que'), 'quorum': vm.get('quorum')})
+            'que': vm.get('que'), 'quorum': vm.get('quorum'), 'obs': vm.get('obs')})
     json.dump(out, open(SALIDA, 'w'), ensure_ascii=False)
     print(f'OK {SALIDA} · {len(out["votaciones"])} votaciones · '
           f'{sum(1 for v in out["votaciones"] if v["nominal"])} con voto nominal · '

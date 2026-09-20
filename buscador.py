@@ -433,7 +433,8 @@ def ficha_proyecto(bol):
             vots.append({'id': txt(v, 'Id'), 'fecha': txt(v, 'Fecha')[:10], 'si': int(txt(v, 'TotalSi') or 0), 'no': int(txt(v, 'TotalNo') or 0),
                          'abst': int(txt(v, 'TotalAbstencion') or 0), 'quorum': txt(v, 'Quorum'), 'resultado': txt(v, 'Resultado'),
                          'tipo': txt(v, 'TipoVotacionProyectoLey') or txt(v, 'Tipo'), 'articulo': txt(v, 'Articulo'),
-                         'tramite': txt(v, 'TramiteConstitucional'), 'tramite_regl': txt(v, 'TramiteReglamentario')})
+                         'tramite': txt(v, 'TramiteConstitucional'), 'tramite_regl': txt(v, 'TramiteReglamentario'),
+                         'materias': txt(v, 'Materias')})
         vots.sort(key=lambda v: v['fecha'])
         autores = []
         for a in e.findall('c:Autores/c:ParlamentarioAutor', NS) + e.findall('c:Autores/c:Diputado', NS):
@@ -543,3 +544,46 @@ if __name__ == '__main__':
     q = ' '.join(sys.argv[1:]) or 'pensiones'
     r = buscar(q)
     print(json.dumps({'total': r.get('total'), 'top': r['resultados'][:8]}, ensure_ascii=False, indent=1))
+
+
+# ----------------------------------------------------------------- OBSERVACIÓN COMPLETA DE UNA VOTACIÓN (en vivo)
+def detalle_votacion(bol, vid=''):
+    """Información completa de una votación de la Sala de la Cámara (texto íntegro de lo que se votó,
+    trámite, informe, materias, quórum, resultado) más el estado actual del proyecto en el Senado y la ley
+    si ya se publicó. Se consulta a las fuentes oficiales en el momento; nada se guarda."""
+    bol = (bol or '').strip()
+    out = {'boletin': bol, 'votacion': None, 'proyecto': None, 'senado': None, 'ley': None, 'errores': []}
+    if not bol:
+        return out
+    try:
+        r = S.http_post_json('https://www.miradaalcongreso.com/api/votaciones', {'param': bol}, timeout=40)
+        e = ET.fromstring(r)
+        vots = []
+        for v in e.findall('c:Votaciones/c:VotacionProyectoLey', NS):
+            vots.append({'id': txt(v, 'Id'), 'fecha': txt(v, 'Fecha')[:16].replace('T', ' '), 'si': int(txt(v, 'TotalSi') or 0),
+                         'no': int(txt(v, 'TotalNo') or 0), 'abst': int(txt(v, 'TotalAbstencion') or 0), 'quorum': txt(v, 'Quorum'),
+                         'resultado': txt(v, 'Resultado'), 'tipo': txt(v, 'TipoVotacionProyectoLey') or txt(v, 'Tipo'),
+                         'articulo': txt(v, 'Articulo'), 'tramite': txt(v, 'TramiteConstitucional'),
+                         'informe': txt(v, 'TramiteReglamentario'), 'materias': txt(v, 'Materias')})
+        vots.sort(key=lambda v: v['fecha'])
+        sel = next((v for v in vots if str(v['id']) == str(vid)), None) if vid else (vots[-1] if vots else None)
+        if sel:
+            sel = dict(sel, numero=vots.index(sel) + 1, total_votaciones=len(vots))
+        out['votacion'] = sel
+        out['proyecto'] = {'nombre': txt(e, 'Nombre'), 'ingreso': txt(e, 'FechaIngreso')[:10], 'iniciativa': txt(e, 'TipoIniciativa'),
+                           'origen': txt(e, 'CamaraOrigen'), 'pid': txt(e, 'Id'),
+                           'materias': [txt(m, 'Nombre') for m in e.findall('c:Materias/c:Materia', NS) if txt(m, 'Nombre')],
+                           'url': f"https://www.camara.cl/legislacion/ProyectosDeLey/tramitacion.aspx?prmID={txt(e, 'Id')}&prmBOLETIN={bol}"}
+    except Exception as ex:
+        out['errores'].append('camara: ' + str(ex)[:120])
+    try:
+        s = _senado_tramitacion(bol.split('-')[0])
+        if s:
+            out['senado'] = {'etapa': s.get('etapa'), 'subetapa': s.get('subetapa'), 'estado': s.get('estado'), 'urgencia': s.get('urgencia'),
+                             'ultimo': (s.get('tramites') or [])[-1] if s.get('tramites') else None, 'url': s.get('url')}
+            if s.get('ley'):
+                out['ley'] = {'numero': s['ley'], 'diario_oficial': s.get('diario_oficial'),
+                              'url': f"https://www.bcn.cl/leychile/navegar?idLey={re.sub(r'[^0-9]', '', s['ley'])}"}
+    except Exception as ex:
+        out['errores'].append('senado: ' + str(ex)[:120])
+    return out
