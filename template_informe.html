@@ -203,6 +203,8 @@
   .progreso{display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap;} .progreso span{flex:1; min-width:110px; text-align:center; padding:6px 8px; border-radius:8px; font-size:12px; font-weight:700; background:#eef2fd; color:var(--texto2);}
   .progreso span.done{background:var(--verde); color:#fff;} .progreso span.now{background:#ffd75e; color:#3d2e00;} body.dark .progreso span{background:#25314f; color:#c9d3ea;}
   .vot > .cab{cursor:pointer; user-select:none;}
+  .cab-titulo{flex-basis:100%; font-size:14px; font-weight:700; line-height:1.35; color:var(--texto); margin-top:2px;}
+  .cab-titulo .cab-sub{display:block; font-weight:600; font-size:13px; color:var(--texto2); margin-top:2px;}
   .vot > .cab:hover{opacity:.85;}
   .btn-plegar{margin-left:auto; border:1px solid var(--borde); background:var(--fondo2, transparent); color:var(--azul); border-radius:8px; padding:3px 9px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;}
   .vot.abierta > .cab .btn-plegar{background:var(--azul); color:#fff;}
@@ -442,7 +444,8 @@ function progreso(d){
 }
 function capVotCamara(v, i, c){
   return `<div class="vot" id="vc-${esc(v.id)}">
-    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${fF(v.fecha)} · ${esc(v.tramite||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button></div>
+    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${fF(v.fecha)} · ${esc(v.tramite||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button>
+      <div class="cab-titulo">${esc(v.articulo||'Votación del proyecto')}${v.exp && v.exp.titular ? `<span class="cab-sub">💬 ${esc(v.exp.titular)}</span>` : ''}</div></div>
     <div class="vot-body" style="display:none">
     ${v.exp?renderSimple(v.exp, {oficialHref: c.url}):''}
     ${v.exp && v.exp.propuesta ? renderComparado(v.exp.propuesta, D.contexto) : ''}
@@ -454,7 +457,8 @@ function capVotCamara(v, i, c){
 }
 function capVotSenado(v, i, s){
   return `<div class="vot" id="vs-${i}">
-    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${esc(v.fecha)} · ${esc(v.etapa||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button></div>
+    <div class="cab"><span><span class="idx">Votación ${i}</span> <b>${esc(v.fecha)} · ${esc(v.etapa||'')}${v.tipo?' · '+esc(v.tipo):''}</b></span><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span><button type="button" class="btn-plegar" aria-expanded="false" title="Mostrar u ocultar el detalle">▸ Ver detalle</button>
+      <div class="cab-titulo">${esc(v.tema||'Votación del proyecto')}${v.exp && v.exp.titular ? `<span class="cab-sub">💬 ${esc(v.exp.titular)}</span>` : ''}</div></div>
     <div class="vot-body" style="display:none">
     ${v.exp?renderSimple(v.exp, {oficialHref: s && s.url}):''}
     <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.tema||'')}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>

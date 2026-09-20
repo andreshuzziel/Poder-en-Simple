@@ -79,6 +79,8 @@ function cargar(html, opts={}){
   t('quórum explicado en palabras', /votos|mayoría/.test(cam.querySelector('.simple').textContent));
   console.log('== 4b. contraer / desplegar cada votación ==');
   t('cada votación tiene botón de plegado y cuerpo', [...vots].every(v => v.querySelector('.btn-plegar') && v.querySelector('.vot-body')));
+  t('contraída igual se ve el título: fecha, resultado y texto oficial de la votación', [...vots].every(v => { const cab = v.querySelector('.cab'); return /\d{2}[-\/]\d{2}[-\/]\d{4}/.test(cab.textContent) && /Aprobad|Rechazad/.test(cab.textContent) && cab.querySelector('.cab-titulo') && cab.querySelector('.cab-titulo').textContent.trim().length > 8; }));
+  t('el título contraído incluye el titular en simple cuando existe', [...vots].some(v => v.querySelector('.cab-titulo .cab-sub')));
   t('votaciones de Cámara contraídas de entrada', [...vots].every(v => v.querySelector('.vot-body').style.display === 'none'));
   vots[0].querySelector('.cab').click(); await espera(20);
   t('un clic en el título despliega', vots[0].querySelector('.vot-body').style.display !== 'none' && /Ocultar/.test(vots[0].querySelector('.btn-plegar').textContent) && vots[0].querySelector('.btn-plegar').getAttribute('aria-expanded') === 'true');
