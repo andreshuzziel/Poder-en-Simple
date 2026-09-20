@@ -11,6 +11,7 @@ python3 gen_elecciones_page.py
 echo '→ regenerando proxima_eleccion.html…'
 python3 gen_proxima_page.py
 python3 gen_buscador_page.py
+python3 gen_informe_page.py
 
 # entorno jsdom: reutiliza si ya existe en /tmp/jst o /tmp/jstest
 if [ -d /tmp/jstest/node_modules/jsdom ]; then JST=/tmp/jstest
@@ -36,6 +37,10 @@ NODE_PATH=$JST/node_modules node test_proxima_jsdom.js > /dev/null
 echo '→ tests del calendario de votaciones…'
 NODE_PATH=$JST/node_modules node test_calendario_jsdom.js | tail -1
 NODE_PATH=$JST/node_modules node test_calendario_jsdom.js > /dev/null
+
+echo '→ tests del informe de proyecto…'
+NODE_PATH=$JST/node_modules node test_informe_jsdom.js | tail -1
+NODE_PATH=$JST/node_modules node test_informe_jsdom.js > /dev/null
 
 echo '→ tests del buscador avanzado…'
 NODE_PATH=$JST/node_modules node test_buscador_jsdom.js | tail -1

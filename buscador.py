@@ -724,3 +724,47 @@ def contexto_texto(texto):
         with ThreadPoolExecutor(max_workers=4) as ex:
             out = list(ex.map(resolver, citas))
     return {'citas': out, 'fuente': 'LeyChile (Biblioteca del Congreso Nacional), texto vigente consultado en este momento'}
+
+
+# ----------------------------------------------------------------- INFORME COMPLETO DE UN PROYECTO (nuevo dashboard)
+def informe_proyecto(bol, completo=True):
+    """Todo el proyecto ordenado para el informe: ficha + voto nominal de TODAS las votaciones de la Cámara +
+    votaciones del Senado + vetos/observaciones + urgencias + normas citadas (LeyChile) + ley publicada.
+    Se descarga al momento; nada persiste en disco."""
+    d = ficha_proyecto(bol)
+    cam = d.get('camara') or {}
+    vots = cam.get('votaciones') or []
+    # voto por diputad@ en TODAS las votaciones (ficha_proyecto solo trae las 6 últimas)
+    faltan = [v for v in vots if not v.get('votos')]
+    if completo and faltan:
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            for v, votos in zip(faltan, ex.map(lambda v: _safe(_votos_camara, v['id']) or {}, faltan)):
+                v['votos'] = votos
+    # agrupar votaciones por trámite constitucional (capítulos del informe)
+    orden = ['Primer Trámite', 'Segundo Trámite', 'Tercer Trámite', 'Comisión Mixta', 'Observaciones P. De La R.']
+    capitulos = {}
+    for v in vots:
+        k = v.get('tramite') or 'Otras votaciones'
+        capitulos.setdefault(k, []).append(v)
+    d['capitulos_camara'] = [{'tramite': k, 'votaciones': capitulos[k]} for k in sorted(capitulos, key=lambda k: orden.index(k) if k in orden else 99)]
+    # vetos / observaciones del Presidente
+    d['vetos'] = [v for v in vots if 'observ' in norm(v.get('tramite', '')) or ('observacion' in norm(v.get('articulo', '')) and 'presidente' in norm(v.get('articulo', '')))]
+    sen = d.get('senado') or {}
+    d['vetos_tramite'] = [t for t in (sen.get('tramites') or []) if re.search(r'veto|observaci', norm(t.get('que', '')))]
+    # indicaciones votadas en Sala y votaciones separadas (para el capítulo de "cambios propuestos")
+    d['indicaciones'] = [v for v in vots if 'indicacion' in norm(v.get('articulo', ''))]
+    # normas citadas en todo el proyecto (título + artículos vigentes), una sola vez
+    try:
+        textos = ' '.join([cam.get('nombre', '')] + [v.get('articulo', '') for v in vots] + [sv.get('tema', '') for sv in d.get('senado_votaciones') or []])
+        d['contexto'] = contexto_texto(textos[:12000])
+    except Exception as ex:
+        d['contexto'] = {'citas': [], 'error': str(ex)[:120]}
+    # línea de tiempo unificada (Senado trae la tramitación completa de ambas cámaras)
+    d['resumen'] = {
+        'n_votaciones_camara': len(vots), 'n_votaciones_senado': len(d.get('senado_votaciones') or []),
+        'n_vetos': len(d['vetos']), 'n_indicaciones': len(d['indicaciones']), 'n_tramites': len(sen.get('tramites') or []),
+        'n_urgencias': len(sen.get('urgencias') or []), 'estado': sen.get('estado') or ('Publicado' if d.get('ley') else ''),
+        'etapa': sen.get('etapa') or '', 'ley': (d.get('ley') or {}).get('numero') or sen.get('ley') or '',
+        'generado': date.today().isoformat(),
+    }
+    return d

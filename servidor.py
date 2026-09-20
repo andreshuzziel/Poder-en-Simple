@@ -860,6 +860,23 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e), 'resultados': []}, 500)
+        elif p.path == '/api/informe':         # informe completo de un proyecto (todas las votaciones nominales, vetos, contexto)
+            qs = urllib.parse.parse_qs(p.query)
+            try:
+                import buscador
+                self._json(buscador.informe_proyecto(qs.get('boletin', [''])[0]))
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self._json({'error': str(e)}, 500)
+        elif p.path in ('/informe', '/informe_proyecto.html'):
+            try:
+                html = open('/home/user/informe_proyecto.html', 'rb').read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers(); self.wfile.write(html)
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
         elif p.path == '/api/contexto':        # normas/artículos citados en un texto votado → título y texto vigente (LeyChile, en vivo)
             qs = urllib.parse.parse_qs(p.query)
             try:

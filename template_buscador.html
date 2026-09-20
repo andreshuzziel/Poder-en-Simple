@@ -144,6 +144,7 @@
   .persona{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:12px; font-size:13.5px;}
   .persona div b{display:block; font-size:11.5px; color:var(--gris); text-transform:uppercase; letter-spacing:.4px;}
   footer{margin:40px 0 30px; font-size:12.5px; color:var(--gris); border-top:1px solid var(--borde); padding-top:14px; line-height:1.7;}
+  .btn-informe{background:var(--azul); color:#fff !important; border-radius:9px; padding:6px 12px; font-weight:800; font-size:12.5px; text-decoration:none;}
   #btn-escuchar{border:1px solid var(--borde); background:#fff; color:var(--azul); font-weight:700; font-size:12.5px; padding:6px 12px; border-radius:9px; cursor:pointer;}
   /* ---------- MODO OSCURO ---------- */
   #dark-toggle{border:1px solid #b9c8ec; background:#eef2fd; border-radius:10px; padding:4px 9px; font-size:15px; line-height:1; cursor:pointer; min-width:30px; min-height:30px; flex:0 0 auto;}
@@ -196,6 +197,7 @@
 <nav class="tabs"><div class="cont">
   <a href="index.html">🏠 Inicio</a>
   <a href="buscador_avanzado.html" class="on">🔎 Buscador avanzado</a>
+  <a href="informe_proyecto.html">📑 Informe de proyecto</a>
   <a href="elecciones_chile.html">🗳️ Elecciones</a>
   <a href="calendario_votaciones.html">🗓️ Calendario</a>
   <a href="proxima_eleccion.html">🔜 Próxima elección</a>
@@ -350,7 +352,7 @@ function fichaProyecto(d, r){
   const ultimaCam = c && c.votaciones.length ? c.votaciones[c.votaciones.length-1] : null;
   const ley = d.ley;
   let html = `<h2 class="tit">📜 ${esc(titulo)}</h2>
-    <div class="ficha-head"><span class="tag congreso">Boletín ${esc(d.boletin)}</span>${ley?`<span class="tag gobierno">Ley ${esc(ley.numero)}</span>`:''}<span class="tag estado">${esc(etapa)}</span>${s&&s.urgencia&&!/sin/i.test(s.urgencia)?`<span class="tag estado">Urgencia: ${esc(s.urgencia)}</span>`:''}<button id="btn-escuchar" type="button">🔊 Escuchar</button></div>
+    <div class="ficha-head"><span class="tag congreso">Boletín ${esc(d.boletin)}</span>${ley?`<span class="tag gobierno">Ley ${esc(ley.numero)}</span>`:''}<span class="tag estado">${esc(etapa)}</span>${s&&s.urgencia&&!/sin/i.test(s.urgencia)?`<span class="tag estado">Urgencia: ${esc(s.urgencia)}</span>`:''}<button id="btn-escuchar" type="button">🔊 Escuchar</button><a class="btn-informe" href="informe_proyecto.html#boletin=${esc(d.boletin)}">📑 Informe completo (todas las votaciones, vetos, leyes citadas)</a></div>
     <p class="lead" id="explica">${explicar(c, s, sv, ley)}</p>
     <div class="kpis">
       <div class="kpi"><div class="num">${esc(ingreso||'—')}</div><div class="lbl">Fecha de ingreso</div></div>

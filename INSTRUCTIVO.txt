@@ -113,3 +113,17 @@ código.
   proxima_eleccion.html · buscador_avanzado.html · dashboard_congreso.html (redirección) ·
   datos_congreso.xlsx · audio_resumen.mp3
   servidor.py solo si el hosting ejecuta Python (modo en vivo).
+
+=== INFORME COMPLETO DE PROYECTO (informe_proyecto.html) ===
+- Fuente: template_informe.html  →  python3 gen_informe_page.py  →  informe_proyecto.html
+- Necesita el servidor en vivo: la página llama a /api/informe?boletin=NNNNN-NN (servidor.py) que
+  ejecuta buscador.informe_proyecto(bol): ficha + TODAS las votaciones de la Cámara con voto nominal,
+  capítulos por trámite, votaciones del Senado, indicaciones, vetos (votaciones de observaciones y
+  oficios del Presidente en la tramitación), urgencias, leyes citadas (LeyChile) y resumen.
+  Tarda 10–40 s por proyecto (100 votaciones ≈ 10 s). Nada se guarda en disco (RAM mientras dura la consulta).
+- Ruta amigable: /informe  (sirve informe_proyecto.html). Deep link: informe_proyecto.html#boletin=15480-13
+- Enlaces de entrada: nav de todas las páginas ("📑 Informe de proyecto"), botón en la ficha del buscador
+  avanzado y en el detalle de cada votación del calendario.
+- Test: NODE_PATH=/tmp/jst/node_modules node test_informe_jsdom.js  (usa test_informe_fixture.json,
+  respuesta real recortada de /api/informe 15480-13). Incluido en hito.sh.
+- Imprimir / guardar PDF: botón en la página (estilos @media print).

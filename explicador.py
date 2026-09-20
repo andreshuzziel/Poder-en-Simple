@@ -289,6 +289,14 @@ def explicar_tramite(que, etapa='', camara=''):
     com = _comision(t)
     if n.startswith('ingreso de proyecto'):
         return f'El proyecto fue presentado oficialmente en {cam}. Aquí empieza su camino.'
+    if 'no hacer uso de la facultad de veto' in n or ('no' in n.split() and 'veto' in n and 'resuelto' in n):
+        return 'El Presidente de la República avisó que NO vetará el proyecto: acepta el texto tal como lo aprobó el Congreso y solo falta promulgarlo y publicarlo.'
+    if 'veto' in n or 'observaciones' in n and 'presidente' in n:
+        if 'aprueba' in n or 'aprobad' in n:
+            return 'El Congreso aceptó las observaciones (veto) del Presidente: los cambios que él propuso quedan incorporados al texto de la ley.'
+        if 'rechaz' in n:
+            return 'El Congreso rechazó las observaciones (veto) del Presidente. Si además insiste con dos tercios, se mantiene el texto original; si no, esa parte no se convierte en ley.'
+        return 'El Presidente de la República observó (vetó) el proyecto: propone cambiar, agregar o eliminar partes del texto aprobado. El Congreso debe votar cada observación.'
     if 'cuenta de proyecto' in n or ('cuenta' in n and 'pasa a comision' in n):
         return f'Se informó a la Sala {sala} que llegó el proyecto y se envió a la {com or "comisión correspondiente"} para que lo estudie en detalle antes de votarlo.'
     if 'comunica' in n and 'aprobacion en general' in n:
