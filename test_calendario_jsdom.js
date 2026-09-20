@@ -122,11 +122,23 @@ if (vObs) {
   t('caja "estado actual en vivo" presente', !!$('#obs-vivo'));
   t('enlace a la ficha completa en el buscador avanzado (con boletín)', !!$(`#det-contenido a[href*="buscador_avanzado.html#q=${encodeURIComponent(vObs.boletin)}"]`));
 }
+// simula el modo en vivo: el servidor responde con estado + contexto de normas citadas
+window.fetch = async () => ({ json: async () => ({ senado:{etapa:'Segundo trámite constitucional (Senado)', estado:'En tramitación', url:'https://www.senado.cl/x'}, ley:null, votacion:{numero:2,total_votaciones:5},
+  contexto:{citas:[{cita:'Ley N° 20.898', titulo:'PROCEDIMIENTO SIMPLIFICADO PARA LA REGULARIZACIÓN DE VIVIENDAS', tipo:'Ley', numero:'20898', publicacion:'2016-02-04', n_articulos:20, url:'https://www.bcn.cl/leychile/navegar?idNorma=1086866', articulos:[{n:'3', texto:'Artículo 3º.- El procedimiento regulado por el presente Título…', derogado:false, version:'2016-02-04'}]}]} }) });
+window.despuesEnVivo(vObs || vAct);
+setTimeout(() => {
+  const ov = $('#obs-vivo');
+  t('en vivo: muestra el estado actual del proyecto (etapa) y la votación N de M', /Segundo trámite/.test(ov.textContent) && /2 de 5/.test(ov.textContent));
+  t('en vivo: contexto con la norma citada, su título y enlace a LeyChile', /Ley N° 20\.898/.test(ov.textContent) && !!ov.querySelector('.ctx a[href*="leychile"][target="_blank"]'));
+  t('en vivo: texto vigente del artículo citado, completo y desplegable', /Artículo 3º\.- El procedimiento/.test(ov.querySelector('.ctx-art pre').textContent));
+  window.fetch = async () => { throw new Error('sin servidor'); };
+  window.despuesEnVivo(vObs || vAct);
+}, 200);
 setTimeout(() => {
   const ov = $('#obs-vivo');
   t('sin servidor, la caja en vivo explica que necesita el modo en vivo', !!ov && /modo en vivo/.test(ov.textContent));
   console.log(`\nRESULTADO: ${pass} pass, ${fail} fail`);
   process.exit(fail ? 1 : 0);
-}, 300);
+}, 600);
 return;
 }, 500);

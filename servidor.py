@@ -860,6 +860,13 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e), 'resultados': []}, 500)
+        elif p.path == '/api/contexto':        # normas/artículos citados en un texto votado → título y texto vigente (LeyChile, en vivo)
+            qs = urllib.parse.parse_qs(p.query)
+            try:
+                import buscador
+                self._json(buscador.contexto_texto(qs.get('texto', [''])[0][:4000]))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
         elif p.path == '/api/votacion':        # observación completa de una votación (en vivo, sin base de datos)
             qs = urllib.parse.parse_qs(p.query)
             try:

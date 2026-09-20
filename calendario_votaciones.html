@@ -93,6 +93,11 @@
   .obs-vivo a{color:var(--azul2); font-weight:700;}
   body.dark .obs-vivo{background:#16213a; border-color:#2f4370; color:#dfe6f5;}
   body.dark .obs dt{color:#9fb8ff;}
+  .ctx{margin-top:12px; padding-top:10px; border-top:1px dashed #b9c8ea;}
+  .ctx-norma{margin-top:8px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,.6); border:1px solid #d5dff3;}
+  .ctx-art{margin-top:6px;} .ctx-art summary{cursor:pointer; font-weight:700; color:var(--azul2);}
+  .ctx-art pre{white-space:pre-wrap; font:inherit; font-size:13px; line-height:1.6; margin:6px 0 0; padding:8px 10px; background:#fff; border-radius:6px; border:1px solid #e3e9f7; max-height:420px; overflow:auto;}
+  body.dark .ctx-norma{background:#1b2540; border-color:#34497a;} body.dark .ctx-art pre{background:#111a2e; border-color:#2f4370; color:#e4eaf7;}
   .cargando{display:inline-block; width:12px; height:12px; border:2px solid #9fb8ff; border-top-color:transparent; border-radius:50%; animation:gira .8s linear infinite; vertical-align:-2px;}
   @keyframes gira{to{transform:rotate(360deg)}}
   @media (max-width:560px){ .obs{grid-template-columns:1fr;} .obs dt{margin-top:6px;} }
@@ -420,6 +425,20 @@ function explicaQuorum(s){
   if(s.includes('reforma') || s.includes('constitu')) return ' — reforma constitucional: necesita 4/7 (89 votos), o 2/3 (104) en algunos capítulos.';
   return '';
 }
+function escH(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderContexto(ctx){
+  if(!ctx || !ctx.citas || !ctx.citas.length) return '';
+  const fmtF = f => f ? f.split('-').reverse().join('/') : '';
+  return `<div class="ctx"><b>📚 Contexto: lo que dicen las normas citadas en esta votación</b>
+    <p class="nota-metodo" style="margin:4px 0 8px">El texto votado menciona otras leyes o artículos. Aquí está lo que dice hoy cada una, tal como aparece en LeyChile (Biblioteca del Congreso Nacional), consultado en este momento.</p>
+    ${ctx.citas.map(c => `<div class="ctx-norma">
+      <div class="ctx-cab"><b>${escH(c.cita)}</b>${c.titulo ? ` — ${escH(c.titulo)}` : ''}${c.error ? ` <span class="chip sin-detalle">no disponible ahora: ${escH(c.error)}</span>` : ''}</div>
+      ${c.titulo ? `<div class="nota-metodo">${c.tipo ? escH(c.tipo)+' '+escH(c.numero)+' · ' : ''}${c.publicacion ? 'publicada el '+fmtF(c.publicacion)+' · ' : ''}${c.organismo ? escH(c.organismo)+' · ' : ''}${c.n_articulos ? c.n_articulos+' artículos' : ''}${c.derogado ? ' · <b>DEROGADA</b>' : ''} · <a href="${escH(c.url)}" target="_blank" rel="noopener">ver norma completa en LeyChile</a></div>` : ''}
+      ${(c.articulos||[]).map(a => a.texto
+        ? `<details class="ctx-art"><summary>📄 Artículo ${escH(a.n)} — texto vigente${a.derogado ? ' (derogado)' : ''}${a.version ? ' · versión ' + fmtF(a.version) : ''}</summary><pre>${escH(a.texto)}</pre></details>`
+        : `<div class="nota-metodo">Artículo ${escH(a.n)}: no se encontró el texto en LeyChile (puede ser un artículo nuevo que este proyecto propone crear).</div>`).join('')}
+    </div>`).join('')}</div>`;
+}
 async function despuesEnVivo(v){
   const caja = document.getElementById('obs-vivo'); if(!caja || !v.boletin) return;
   try{
@@ -432,7 +451,7 @@ async function despuesEnVivo(v){
     if(s && s.ultimo && s.ultimo.que) h += `Último movimiento (${s.ultimo.fecha}): ${s.ultimo.que}. `;
     if(vo && vo.total_votaciones) h += `Esta fue la votación <b>${vo.numero} de ${vo.total_votaciones}</b> que ha tenido el proyecto en la Sala de la Cámara. `;
     if(s && s.url) h += `<a href="${s.url}" target="_blank" rel="noopener">Tramitación oficial en senado.cl</a>`;
-    caja.innerHTML = h;
+    caja.innerHTML = h + renderContexto(d.contexto);
   }catch(e){
     caja.innerHTML = 'ℹ️ El estado actual (Senado / ley publicada) se muestra cuando la página funciona en modo en vivo.';
   }

@@ -51,7 +51,8 @@ function cargar(html){
       w.fetch = async (url) => {
         const u = String(url);
         let body = {};
-        if (u.startsWith('/api/buscar')) body = BUSCAR;
+        if (u.startsWith('/api/contexto')) body = {citas:[{cita:'Ley N° 21.325', titulo:'LEY DE MIGRACIÓN Y EXTRANJERÍA', tipo:'Ley', numero:'21325', publicacion:'2021-04-20', organismo:'MINISTERIO DEL INTERIOR', n_articulos:184, url:'https://www.bcn.cl/leychile/navegar?idNorma=1158549', articulos:[{n:'24', texto:'Artículo 24.- Forma de ingreso y egreso. La entrada de personas al territorio nacional…', derogado:false, version:'2021-04-20'}]}]};
+        else if (u.startsWith('/api/buscar')) body = BUSCAR;
         else if (u.includes('tipo=proyecto')) body = FICHA;
         else if (u.includes('tipo=diputado')) body = PERSONA;
         else if (u.includes('tipo=senador')) body = {tipo:'senador', persona:{nombre:'Pedro Araya Guerrero', partido:'P.P.D.', region:'Región de Antofagasta', circ:'3'}, url:'https://www.senado.cl/x'};
@@ -107,7 +108,7 @@ function cargar(html){
   fc.querySelector('.subtabs [data-s="camara"]').click();
   t('pestaña Cámara con 2 votaciones y semáforo', d.querySelector('#s-camara').classList.contains('on') && d.querySelectorAll('#s-camara .vot').length === 2 && d.querySelectorAll('#s-camara .stack').length === 2);
   const btnCam = d.querySelector('#s-camara .btn-det');
-  t('botón "cómo votó cada diputad@" solo en la votación con detalle', !!btnCam && d.querySelectorAll('#s-camara .btn-det').length === 1);
+  t('botón "cómo votó cada diputad@" solo en la votación con detalle', !!btnCam && d.querySelectorAll('#s-camara .btn-det:not(.btn-ctx)').length === 1);
   btnCam.click();
   const cajaCam = d.querySelector('#cam-2');
   t('detalle nominal de diputad@s: 155 chips', cajaCam.querySelectorAll('.dip').length === 155, cajaCam.querySelectorAll('.dip').length);
@@ -130,6 +131,12 @@ function cargar(html){
   fc.querySelector('.subtabs [data-s="fuentes"]').click();
   const links = [...d.querySelectorAll('#s-fuentes a')];
   t('enlaces oficiales a camara.cl, senado.cl y LeyChile, en pestaña nueva', links.length === 3 && links.every(a => a.target === '_blank' && /noopener/.test(a.rel)) && /camara\.cl/.test(links[0].href) && /senado\.cl/.test(links[1].href) && /bcn\.cl/.test(links[2].href));
+  const bctx = d.querySelector('#s-camara .btn-ctx');
+  t('cada votación tiene botón "Ver el contexto" (leyes y artículos citados)', !!bctx && d.querySelectorAll('.btn-ctx').length >= 3);
+  bctx.click(); await espera(120);
+  const cajaCtx = d.getElementById(bctx.dataset.ctx);
+  t('el contexto muestra la norma citada con su título, fecha y enlace a LeyChile', /Ley N° 21\.325/.test(cajaCtx.textContent) && /MIGRACIÓN/.test(cajaCtx.textContent) && /20\/04\/2021/.test(cajaCtx.textContent) && !!cajaCtx.querySelector('a[href*="leychile"][target="_blank"]'));
+  t('muestra el texto vigente completo del artículo citado', /Artículo 24\.- Forma de ingreso y egreso/.test(cajaCtx.querySelector('.ctx-art pre').textContent));
   t('botón Escuchar presente', !!d.querySelector('#btn-escuchar'));
 
   console.log('== 4. volver y ficha de persona ==');
@@ -163,6 +170,14 @@ function cargar(html){
   D.window.document.querySelector('#q').value = 'x'; D.window.document.querySelector('#form').dispatchEvent(new D.window.Event('submit', {cancelable:true}));
   await espera(150);
   t('explica que necesita el modo en vivo', /modo en vivo/.test(D.window.document.querySelector('#estado').textContent));
+
+  console.log('== 7b. motor de citas (python) ==');
+  const pyc = require('child_process').spawnSync('python3', ['-c', `
+import buscador as B
+c = B.citas_en_texto('Modifica el decreto ley N°321, de 1925; los artículos 49, 50 y 51 del Código Penal; el artículo 3 de la ley N° 20.898 y el artículo 17 del decreto ley N° 3.500')
+print('|'.join(sorted(x['cita'] + ':' + ','.join(x['articulos']) for x in c)))`], {encoding:'utf8', cwd: __dirname});
+  const citas = (pyc.stdout||'').trim();
+  t('detecta DL 321, Código Penal (arts. 49-51), Ley 20.898 (art. 3) y DL 3.500 (art. 17) sin confundir "decreto ley" con "ley"', citas === ['Código Penal:49,50,51','Decreto Ley N° 3.500 (sistema de pensiones):17','Decreto Ley N° 321 (libertad condicional):','Ley N° 20.898:3'].sort().join('|'), citas);
 
   console.log('== 8. tolerancia a faltas de ortografía ==');
   const E = new JSDOM(html, { runScripts:'dangerously', pretendToBeVisual:true, url:'https://localhost/buscador_avanzado.html', beforeParse(w4){ w4.scrollTo=()=>{}; w4.fetch = async u => ({ json: async () => (String(u).includes('q=pencion') || String(u).includes('q=pensiones')) ? Object.assign({}, BUSCAR, {sugerencia: String(u).includes('pencion') ? 'pensiones' : ''}) : BUSCAR }); }, virtualConsole: new VirtualConsole() });

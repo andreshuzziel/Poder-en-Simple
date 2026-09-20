@@ -586,4 +586,132 @@ def detalle_votacion(bol, vid=''):
                               'url': f"https://www.bcn.cl/leychile/navegar?idLey={re.sub(r'[^0-9]', '', s['ley'])}"}
     except Exception as ex:
         out['errores'].append('senado: ' + str(ex)[:120])
+    # contexto: normas y artículos citados en el texto de lo que se votó (LeyChile, en vivo)
+    try:
+        txt_v = ' '.join(filter(None, [(out['votacion'] or {}).get('articulo'), (out['votacion'] or {}).get('materias'),
+                                       (out['proyecto'] or {}).get('nombre')]))
+        out['contexto'] = contexto_texto(txt_v)
+    except Exception as ex:
+        out['contexto'] = {'citas': [], 'error': str(ex)[:120]}
     return out
+
+
+# ----------------------------------------------------------------- CONTEXTO: NORMAS CITADAS EN LO QUE SE VOTA (en vivo, LeyChile)
+# Cuando el texto de una votación cita "la ley N° 21.325", "el artículo 3 de la ley N° 20.898" o "el Código del Trabajo",
+# se descarga al momento desde LeyChile (BCN) el título de esa norma y el texto vigente de los artículos citados,
+# para que la persona vea el contexto completo de lo que se votó. Nada se guarda en disco (solo RAM temporal).
+LEYCHILE_XML = 'https://www.leychile.cl/Consulta/obtxml?opt=7&'
+CODIGOS = {   # normas de uso común que no se identifican por "ley N°": idNorma oficial en LeyChile
+    'codigo del trabajo': ('Código del Trabajo', 207436), 'codigo penal': ('Código Penal', 1984),
+    'codigo civil': ('Código Civil', 172986), 'codigo procesal penal': ('Código Procesal Penal', 176595),
+    'constitucion politica': ('Constitución Política de la República', 242302), 'carta fundamental': ('Constitución Política de la República', 242302),
+    'codigo sanitario': ('Código Sanitario', 5595), 'codigo de procedimiento civil': ('Código de Procedimiento Civil', 22740),
+    'codigo de procedimiento penal': ('Código de Procedimiento Penal', 22960), 'ley de transito': ('Ley de Tránsito (texto refundido)', 1007469),
+    'codigo organico de tribunales': ('Código Orgánico de Tribunales', 25563), 'codigo tributario': ('Código Tributario', 6374),
+    'codigo de justicia militar': ('Código de Justicia Militar', 18914), 'codigo de comercio': ('Código de Comercio', 1974),
+    'codigo de aguas': ('Código de Aguas', 5605), 'codigo aeronautico': ('Código Aeronáutico', 30287),
+    'decreto ley n 321': ('Decreto Ley N° 321 (libertad condicional)', 5979), 'decreto ley n321': ('Decreto Ley N° 321 (libertad condicional)', 5979),
+    'decreto ley n 3.500': ('Decreto Ley N° 3.500 (sistema de pensiones)', 7147), 'decreto ley n 3500': ('Decreto Ley N° 3.500 (sistema de pensiones)', 7147),
+    'ley organica constitucional de municipalidades': ('Ley Orgánica Constitucional de Municipalidades (texto refundido)', 251693),
+}
+L_NS = '{http://www.leychile.cl/esquemas}'
+
+def _num_art(s):
+    s = norm(s).replace('º', '').replace('°', '').replace('.', '').strip()
+    return re.sub(r'\s+', ' ', s)
+
+def _norma_leychile(clave):
+    """Descarga y estructura una norma de LeyChile (clave: 'ley:21325' o 'id:207436'). Cacheada en RAM."""
+    def fn():
+        tipo, val = clave.split(':', 1)
+        par = ('idLey=' + val if tipo == 'ley' else 'idNorma=' + val)
+        x = ''
+        for host in ('https://www.leychile.cl/Consulta/obtxml?opt=7&', 'https://www.bcn.cl/leychile/Consulta/obtxml?opt=7&',
+                     'https://nuevo.leychile.cl/servicios/Consulta/obtxml?opt=7&'):   # LeyChile a veces responde 502: se reintenta
+            try:
+                x = S.http_get(host + par, timeout=60)
+                if x and x.lstrip().startswith('<?xml'):
+                    break
+            except Exception:
+                x = ''
+        if not x or not x.lstrip().startswith('<?xml'):
+            return None
+        root = ET.fromstring(x)
+        ident = root.find(L_NS + 'Identificador')
+        tn = root.find(f'{L_NS}Identificador/{L_NS}TiposNumeros/{L_NS}TipoNumero')
+        arts = {}
+        for e in root.iter(L_NS + 'EstructuraFuncional'):
+            if not e.get('tipoParte', '').lower().startswith('art'):
+                continue
+            tx = re.sub(r'[ \t]+', ' ', (e.findtext(L_NS + 'Texto') or '')).strip()
+            m = re.match(r'(?:art[ií]culo|art\.)\s*([0-9]+(?:\s*(?:bis|ter|qu[aá]ter|quinquies|sexies|septies|octies))?)\s*[°º]?', tx, flags=re.I)
+            if not m:
+                continue
+            k = _num_art(m.group(1)) + (' transitorio' if e.get('transitorio', '') == 'transitorio' else '')
+            arts.setdefault(k, {'texto': tx, 'derogado': e.get('derogado', '') == 'derogado', 'version': e.get('fechaVersion', '')})
+        return {'id': root.get('normaId'), 'titulo': html_mod.unescape(root.findtext(f'{L_NS}Metadatos/{L_NS}TituloNorma') or '').strip(),
+                'tipo': (tn.findtext(L_NS + 'Tipo') if tn is not None else '') or '', 'numero': (tn.findtext(L_NS + 'Numero') if tn is not None else '') or '',
+                'promulgacion': ident.get('fechaPromulgacion', '') if ident is not None else '', 'publicacion': ident.get('fechaPublicacion', '') if ident is not None else '',
+                'organismo': html_mod.unescape(root.findtext(f'{L_NS}Identificador/{L_NS}Organismos/{L_NS}Organismo') or '').strip(),
+                'derogado': root.get('derogado', '') == 'derogado', 'n_articulos': len(arts), 'articulos': arts,
+                'url': f"https://www.bcn.cl/leychile/navegar?idNorma={root.get('normaId')}"}
+    return S.cached('leychile_norma_' + clave, fn)
+
+RE_ART = r'art[ií]culos?\s+((?:[0-9]+\s*[°º]?\s*(?:bis|ter|qu[aá]ter|quinquies)?\s*(?:transitorios?)?\s*(?:,|y|e|al|a)?\s*)+)'
+RE_LEY = r'(?<!decreto )(?<!fuerza de )ley\s*(?:n\s*[°º.]*\s*)?([0-9]{1,2}[.]?[0-9]{3})'
+
+def citas_en_texto(texto):
+    """Detecta las normas y artículos citados en un texto (lo que se votó)."""
+    t = html_mod.unescape(texto or '')
+    tn = re.sub(r'\bn\s*[°º.]+\s*', 'n ', norm(t))   # "N°321" → "n 321"
+    citas = {}
+    def add(clave, etiqueta, arts):
+        c = citas.setdefault(clave, {'clave': clave, 'cita': etiqueta, 'articulos': []})
+        for a in arts:
+            if a not in c['articulos']:
+                c['articulos'].append(a)
+    def lista_arts(s):
+        out = []
+        for m in re.finditer(r'([0-9]+)\s*[°º]?\s*(bis|ter|quater|quinquies)?\s*(transitorios?)?', s):
+            out.append(_num_art(m.group(1) + (' ' + m.group(2) if m.group(2) else '')) + (' transitorio' if m.group(3) else ''))
+        return out[:8]
+    # artículo(s) X de la ley N° Y
+    for m in re.finditer(RE_ART + r'\s*(?:,\s*)?(?:de\s+la|del|de)\s+' + RE_LEY, tn):
+        add('ley:' + m.group(2).replace('.', ''), 'Ley N° ' + m.group(2), lista_arts(m.group(1)))
+    # artículo(s) X del Código ...
+    for m in re.finditer(RE_ART + r'\s*(?:,\s*)?(?:de\s+la|del|de)\s+((?:codigo|constitucion|carta|ley organica|decreto ley n ?[0-9.]+)[a-z .0-9]*?)(?=[,;.)]|\s+(?:que|en|para|con|y|cuya|cuyo)\b|$)', tn):
+        key = re.sub(r'\s+', ' ', m.group(2)).strip()
+        for k, (nombre, idn) in CODIGOS.items():
+            if key.startswith(k):
+                add('id:' + str(idn), nombre, lista_arts(m.group(1))); break
+    # leyes citadas sin artículo
+    for m in re.finditer(RE_LEY, tn):
+        add('ley:' + m.group(1).replace('.', ''), 'Ley N° ' + m.group(1), [])
+    # códigos citados sin artículo
+    for k, (nombre, idn) in CODIGOS.items():
+        if k in tn:
+            add('id:' + str(idn), nombre, [])
+    return list(citas.values())[:6]
+
+def contexto_texto(texto):
+    """Resuelve en vivo cada norma citada: título, fechas, estado y texto vigente de los artículos citados."""
+    citas = citas_en_texto(texto)
+    out = []
+    def resolver(c):
+        try:
+            n = _norma_leychile(c['clave'])
+        except Exception as ex:
+            return dict(c, error=str(ex)[:100])
+        if not n:
+            return dict(c, error='LeyChile no entregó esta norma en este momento')
+        arts = []
+        for a in c['articulos']:
+            x = n['articulos'].get(a) or n['articulos'].get(a.replace(' transitorio', ''))
+            arts.append({'n': a, 'texto': x['texto'] if x else None, 'derogado': x['derogado'] if x else None, 'version': x['version'] if x else ''})
+        return {'cita': c['cita'], 'titulo': n['titulo'], 'tipo': n['tipo'], 'numero': n['numero'], 'publicacion': n['publicacion'],
+                'promulgacion': n['promulgacion'], 'organismo': n['organismo'], 'derogado': n['derogado'], 'n_articulos': n['n_articulos'],
+                'url': n['url'], 'articulos': arts}
+    if citas:
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            out = list(ex.map(resolver, citas))
+    return {'citas': out, 'fuente': 'LeyChile (Biblioteca del Congreso Nacional), texto vigente consultado en este momento'}
