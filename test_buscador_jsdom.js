@@ -25,7 +25,7 @@ const FICHA = {
     autores: [], ministerios: ['Ministerio de Hacienda'], materias: ['Pensiones'], admisible:'true',
     votaciones: [
       {id:'1', fecha:'2024-01-24', si:80, no:70, abst:2, quorum:'Quórum Simple', resultado:'Aprobado', tipo:'General', articulo:'Idea de legislar', tramite:'Primer trámite constitucional'},
-      {id:'2', fecha:'2025-01-29', si:100, no:40, abst:10, quorum:'Quórum Calificado', resultado:'Aprobado', tipo:'Única', exp:'Se vota si la Cámara acepta los cambios que el Senado le hizo al proyecto que ella ya había aprobado.', articulo:'Enmiendas del Senado', tramite:'Tercer trámite constitucional', votos: votosCam},
+      {id:'2', fecha:'2025-01-29', si:100, no:40, abst:10, quorum:'Quórum Calificado', resultado:'Aprobado', tipo:'Única', exp:{titular:'Cambios hechos por el Senado · Aprobado 100-40', que:'Se vota si la Cámara acepta los cambios que el Senado le hizo al proyecto que ella ya había aprobado.', contexto:'Es el tercer trámite.', quorum:'Necesitaba 78 votos (quórum calificado).', resultado:'Se aprobó con 100 votos a favor, 40 en contra y 10 abstenciones.', consecuencia:'¿Y ahora? Con los cambios del Senado aceptados, el proyecto pasa al Presidente para promulgarlo.', propuesta:'Artículo 24.- Nuevo texto propuesto para el ingreso y egreso del país.'}, articulo:'Enmiendas del Senado', tramite:'Tercer trámite constitucional', votos: votosCam},
     ],
     url: 'https://www.camara.cl/legislacion/proyectosdeley/tramitacion.aspx?prmID=16006'},
   senado: {boletin:'15480-13', titulo:'Crea un nuevo Sistema Mixto de Pensiones', ingreso:'07/11/2022', iniciativa:'Mensaje', origen:'C.Diputados', urgencia:'Sin urgencia', etapa:'Tramitación terminada', subetapa:' / ', ley:'Ley N° 21.735', diario_oficial:'26/03/2025', estado:'Publicado',
@@ -131,7 +131,14 @@ function cargar(html){
   fc.querySelector('.subtabs [data-s="fuentes"]').click();
   const links = [...d.querySelectorAll('#s-fuentes a')];
   t('enlaces oficiales a camara.cl, senado.cl y LeyChile, en pestaña nueva', links.length === 3 && links.every(a => a.target === '_blank' && /noopener/.test(a.rel)) && /camara\.cl/.test(links[0].href) && /senado\.cl/.test(links[1].href) && /bcn\.cl/.test(links[2].href));
-  t('cada votación explica "en simple" qué se votó (recuadro amarillo)', /En simple, ¿qué se votó aquí\?/.test(d.querySelector('#s-camara').textContent) && /acepta los cambios que el Senado/.test(d.querySelector('#s-camara .simple').textContent));
+  const simp = d.querySelector('#s-camara .simple');
+  t('cada votación explica "en simple" qué se votó (recuadro amarillo con titular)', !!simp && /Cambios hechos por el Senado · Aprobado 100-40/.test(simp.querySelector('.titular').textContent) && /acepta los cambios que el Senado/.test(simp.textContent));
+  t('dice qué pasa ahora (consecuencia) y esconde trámite/quórum en "ver más"', /¿Y ahora\?/.test(simp.querySelector('.ahora').textContent) && /tercer trámite/.test(simp.querySelector('details.mas').textContent));
+  t('aviso de explicación automática con enlace a la fuente oficial', /Explicación automática/.test(simp.querySelector('.aviso-auto').textContent) && !!simp.querySelector('.aviso-auto a[target="_blank"]'));
+  t('palabras del Congreso marcadas con glosario emergente (quórum calificado, tercer trámite…)', d.querySelectorAll('#ficha-contenido .glos').length >= 2);
+  const gl = d.querySelector('#ficha-contenido .glos'); gl.click();
+  t('al tocar una palabra aparece su definición y se cierra con ✕', !!d.querySelector('.glos-pop') && d.querySelector('.glos-pop').textContent.length > 40 && (d.querySelector('.glos-pop .glos-x').click(), !d.querySelector('.glos-pop')));
+  t('comparado "así dice hoy / así quedaría" cuando la votación trae texto propuesto', !!d.querySelector('#comparado-cam-2 .comparado .prop') && /Nuevo texto propuesto/.test(d.querySelector('#comparado-cam-2 .prop').textContent));
   t('la línea de tramitación explica cada paso en simple', /presentado oficialmente en la Cámara/.test(d.querySelector('#s-tramite .timeline .simple').textContent));
   const bctx = d.querySelector('#s-camara .btn-ctx');
   t('cada votación tiene botón "Ver el contexto" (leyes y artículos citados)', !!bctx && d.querySelectorAll('.btn-ctx').length >= 3);
@@ -139,8 +146,14 @@ function cargar(html){
   const cajaCtx = d.getElementById(bctx.dataset.ctx);
   t('el contexto muestra la norma citada con su título, fecha y enlace a LeyChile', /Ley N° 21\.325/.test(cajaCtx.textContent) && /MIGRACIÓN/.test(cajaCtx.textContent) && /20\/04\/2021/.test(cajaCtx.textContent) && !!cajaCtx.querySelector('a[href*="leychile"][target="_blank"]'));
   t('muestra el texto vigente completo del artículo citado', /Artículo 24\.- Forma de ingreso y egreso/.test(cajaCtx.querySelector('.ctx-art pre').textContent));
+  t('tras cargar el contexto, el comparado muestra "así dice hoy" con el artículo vigente de LeyChile', /Forma de ingreso y egreso/.test(d.querySelector('#comparado-cam-2 .hoy').textContent));
   t('botón Escuchar presente', !!d.querySelector('#btn-escuchar'));
 
+  {
+    let hablado = ''; w.speechSynthesis = { cancel(){}, speak(u){ hablado = u.text; } }; w.SpeechSynthesisUtterance = function(t){ this.text = t; };
+    d.querySelector('#btn-escuchar').click();
+    t('Escuchar lee también las explicaciones "en simple" de las votaciones', /Votaciones, en simple/.test(hablado) && /acepta los cambios que el Senado/.test(hablado) && !/Explicación automática/.test(hablado));
+  }
   console.log('== 4. volver y ficha de persona ==');
   d.querySelector('#btn-volver').click();
   t('volver muestra la lista con los mismos resultados', d.querySelector('#resultados').style.display === '' && d.querySelectorAll('#lista .item').length === 4);
@@ -201,7 +214,15 @@ ok += 'primera en revisar' in E.explicar_votacion('Artículo 58 transitorio del 
 ok += 'Comisión de Cultura, Patrimonio, Artes, Deportes y Recreación' in E.explicar_tramite('Cuenta de proyecto . Pasa a Comisión de Cultura, Patrimonio, Artes, Deportes y Recreación', '', 'Senado')
 ok += 'al Senado' in E.explicar_tramite('Oficio de ley a Cámara Revisora .', '', 'C.Diputados') and 'Presidente' in E.explicar_tramite('Oficio de ley al Ejecutivo.') and 'urgencia simple (30 días)' in E.explicar_tramite('Cuenta del Mensaje 22-374 que hace presente la urgencia Simple')
 ok += 'en general' in E.explicar_votacion_senado({'tema':'En votación en general el proyecto', 'tipo':'Discusión general', 'etapa':'Segundo trámite constitucional', 'quorum':'Q.C.', 'si':40, 'no':7, 'abst':0, 'pareo':2}) and '26 votos' in E.explicar_votacion_senado({'tema':'', 'tipo':'Discusión general', 'quorum':'Q.C.', 'si':40, 'no':7, 'pareo':2}) and 'pareo' in E.explicar_votacion_senado({'tema':'', 'tipo':'', 'quorum':'', 'si':1, 'no':0, 'pareo':2})
-print(ok, 10)`], {encoding:'utf8', cwd: __dirname});
+r = E.explicar_votacion('', 'Primer Trámite', 'Primer Informe', 'Quórum Simple', 'Aprobado', 90, 10, 0, 'Proyecto de Ley', 'X')
+ok += 'idea de legislar' in r['que'] and 'ahora se discuten' in r['consecuencia'] and r['titular'].startswith('Idea de legislar')
+r = E.explicar_votacion('', '', '', '', 'Aprobado', 70, 10, 0, 'Otros', '', '3-Creacion Comision Investigadora')
+ok += 'comisión investigadora' in r['que'] and 'La comisión se forma' in r['consecuencia']
+r = E.explicar_votacion('Numeral 2) del artículo único del proyecto, cuya votación separada ha sido solicitada', 'Primer Trámite', 'Segundo Informe', 'Quórum Simple', 'Rechazado', 60, 70, 1)
+ok += 'se cae' in r['consecuencia'] and 'Rechazado 60-70' in r['titular']
+r = E.explicar_votacion('Indicación renovada del diputado X para agregar el siguiente artículo nuevo: “Artículo 3 bis.- Las municipalidades podrán conformar equipos comunales de regularización de viviendas integrados por arquitectos municipales.”', 'Primer Trámite', 'Segundo Informe', 'Quórum Simple', 'Rechazado', 60, 70, 1)
+ok += r['propuesta'].startswith('Artículo 3 bis') and 'se descarta' in r['consecuencia']
+print(ok, 14)`], {encoding:'utf8', cwd: __dirname});
   const [oke, tote] = (pye.stdout || '0 0').trim().split(/\s+/).map(Number);
   t(`explicador: ${oke}/${tote} casos (partes del proyecto, cambios del Senado, inadmisibilidad, indicaciones, veto, tratados, transitorios, trámites, Senado)`, oke === tote && tote > 0, pye.stderr && pye.stderr.slice(0, 300));
 

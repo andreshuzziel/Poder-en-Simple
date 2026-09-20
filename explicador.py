@@ -110,13 +110,33 @@ def _informe(inf, tramite=''):
         return 'Se vota directamente en la Sala, sin informe previo de comisión (ocurre, por ejemplo, con los cambios del Senado o cuando hay urgencia).'
     return ''
 
-def explicar_votacion(texto, tramite='', informe='', quorum='', resultado='', si=0, no=0, abst=0, tipo_proyecto='', nombre_proyecto=''):
+_OTROS = {
+    'acusacion constitucional': ('Es una acusación constitucional: la Cámara vota si acusa a una autoridad (ministro, juez, intendente, etc.) por infringir la Constitución o las leyes. Si se aprueba, la autoridad queda suspendida y el Senado actúa como jurado.', 'Acusación constitucional'),
+    'creacion comision investigadora': ('Se vota crear una comisión investigadora: un grupo de diputad@s que fiscalizará actos del Gobierno o de un servicio público sobre un tema concreto. Necesita el apoyo de al menos 2/5 de la Cámara (62 votos).', 'Crear una comisión investigadora'),
+    'informe comision investigadora': ('Se vota el informe final de una comisión investigadora: sus conclusiones y propuestas sobre lo fiscalizado. Aprobarlo significa que la Cámara las hace suyas y las envía a las autoridades.', 'Informe de comisión investigadora'),
+    'cambio de tramite': ('Se vota un cambio en el camino del proyecto: por ejemplo, enviarlo a otra comisión o cambiar el orden en que se estudia.', 'Cambio de trámite'),
+    'otros': ('Votación de la Sala que no es un proyecto de ley: puede ser un procedimiento (plazos, orden del día, permisos), un homenaje u otro acuerdo interno de la Cámara.', 'Acuerdo o procedimiento de la Sala'),
+}
+
+def explicar_votacion(texto, tramite='', informe='', quorum='', resultado='', si=0, no=0, abst=0, tipo_proyecto='', nombre_proyecto='', descripcion=''):
     """Devuelve {'que': qué se vota en simple, 'contexto': trámite/informe, 'quorum': ..., 'resultado': ..., 'texto': párrafo unido}."""
     t = _html.unescape(texto or '').strip()
     n = _n(t)
     parte = _parte(t)
     com = _comision(t)
     que = ''
+    dsc = re.sub(r'^\d+-', '', _n(descripcion))
+    if _n(tipo_proyecto) == 'otros' and dsc in _OTROS and not t:
+        que = _OTROS[dsc][0]
+        rr = _resultado(resultado, si, no, abst, quorum)
+        ap = 'aprob' in _n(resultado)
+        cons = '¿Y ahora? ' + ({'acusacion constitucional': 'La autoridad queda suspendida de sus funciones y el Senado decidirá si es culpable.' if ap else 'La acusación se rechaza y la autoridad sigue en su cargo.',
+                              'creacion comision investigadora': 'La comisión se forma y tendrá un plazo para citar autoridades, pedir documentos y emitir un informe.' if ap else 'La comisión no se crea.',
+                              'informe comision investigadora': 'Las conclusiones se envían al Gobierno y a los organismos competentes (Contraloría, Fiscalía) para que actúen.' if ap else 'La Cámara no respalda las conclusiones de la comisión.',
+                              'cambio de tramite': 'El proyecto sigue por el nuevo camino acordado.' if ap else 'El proyecto sigue su camino original.'}.get(dsc, 'La Sala continúa con su trabajo según lo acordado.' if ap else 'La propuesta no prospera.'))
+        tit = f"{_OTROS[dsc][1]} · {'Aprobado' if ap else 'Rechazado'} {si}-{no}"
+        return {'que': que, 'contexto': '', 'quorum': _quorum(quorum), 'resultado': rr, 'consecuencia': cons, 'propuesta': '', 'titular': tit,
+                'texto': ' '.join(x for x in [que, rr, cons] if x)}
     if 'proyecto de resolucion' in _n(tipo_proyecto) or n.startswith('en votacion el proyecto de resolucion') or 'proyecto de resolucion' in n:
         que = 'No es una ley: es un proyecto de resolución, una petición formal de la Cámara al Gobierno u otra autoridad para que haga algo. No obliga, pero fija una postura política.'
     elif 'proyecto de acuerdo' in n or 'proyecto de acuerdo' in _n(tipo_proyecto):
@@ -162,7 +182,19 @@ def explicar_votacion(texto, tramite='', informe='', quorum='', resultado='', si
     elif 'en particular' in n:
         que = 'Se vota "en particular": el detalle del texto, artículo por artículo.'
     elif not t:
-        que = 'Se vota el proyecto completo tal como viene de la comisión (la fuente oficial no detalla una parte específica).'
+        inf = _n(informe); trn = _n(tramite)
+        if 'primer' in inf:
+            que = 'Se vota "en general": si la Cámara está de acuerdo con la idea de legislar sobre este tema. Si nadie propuso cambios, en la misma votación queda aprobado también el texto.'
+        elif 'segundo' in inf:
+            que = 'Se vota el resto del texto del proyecto: todos los artículos que nadie pidió votar por separado, con la redacción que propuso la comisión.'
+        elif 'tercer' in trn:
+            que = 'Se vota si la Cámara acepta los cambios que le hizo el Senado al proyecto (la fuente oficial no detalla cuáles).'
+        elif 'mixta' in trn:
+            que = 'Se vota la propuesta de la Comisión Mixta para resolver las diferencias entre la Cámara y el Senado.'
+        elif 'sin informe' in inf:
+            que = 'Se vota el proyecto directamente en la Sala, sin informe previo de comisión (suele ocurrir con proyectos simples o con urgencia).'
+        else:
+            que = 'Se vota el proyecto completo tal como viene de la comisión (la fuente oficial no detalla una parte específica).'
     else:
         que = 'Se vota: ' + _frase(t, 220)
     if nombre_proyecto and 'resolución' not in que and 'tratado' not in que and 'proyecto de acuerdo' not in que:
@@ -170,8 +202,83 @@ def explicar_votacion(texto, tramite='', informe='', quorum='', resultado='', si
     ctx = ' '.join(x for x in [_tramite(tramite), _informe(informe, tramite)] if x)
     qq = _quorum(quorum)
     rr = _resultado(resultado, si, no, abst, quorum)
-    return {'que': que, 'contexto': ctx, 'quorum': qq, 'resultado': rr,
-            'texto': ' '.join(x for x in [que, ctx, qq, rr] if x)}
+    clase = _clase(n, tipo_proyecto, que)
+    cons = _consecuencia(n, resultado, tramite, informe, parte, clase, si, no, quorum)
+    prop = _texto_propuesto(t) if clase not in ('tratado', 'resolucion', 'acuerdo') else ''
+    tit = _titular(que, parte, resultado, si, no, n, clase, quorum)
+    return {'que': que, 'contexto': ctx, 'quorum': qq, 'resultado': rr, 'consecuencia': cons, 'propuesta': prop, 'titular': tit,
+            'texto': ' '.join(x for x in [que, ctx, qq, rr, cons] if x)}
+
+def _texto_propuesto(t):
+    """Si la observación trae entre comillas el texto que se propone (indicaciones, artículos nuevos), lo separa
+    para mostrarlo como 'así quedaría' frente al 'así dice hoy' que aporta LeyChile."""
+    m = re.search(r'[“"]\s*(Art[ií]culo[^”"]{40,}|[^”"]{80,})\s*[”"]', t or '')
+    if not m:
+        return ''
+    s = re.sub(r'\s+', ' ', m.group(1)).strip()
+    # descartar cuando la cita es solo el nombre del proyecto ("Modifica la ley N° ... para ...")
+    if re.match(r'(modifica|crea|establece|regula|aprueba|prorroga|dispone|sanciona|declara|otorga|faculta|autoriza|fija|perfecciona|fortalece|reconoce|aumenta|tipifica|incorpora|introduce)\b', _n(s)) and len(s) < 260:
+        return ''
+    return s
+
+def _clase(n, tipo_proyecto, que):
+    tp = _n(tipo_proyecto); q = _n(que)
+    if 'inadmisibil' in n: return 'inadmisibilidad'
+    if 'tratado' in q or 'tratado' in n or 'convenio' in n: return 'tratado'
+    if 'proyecto de resolucion' in n or 'resolucion' in tp: return 'resolucion'
+    if 'proyecto de acuerdo' in n or 'acuerdo' in tp: return 'acuerdo'
+    if 'observacion' in n and 'presidente' in n: return 'veto'
+    if 'comision mixta' in n: return 'mixta'
+    if re.search(r'\b(enmiendas?|modificaciones)\b.*\bsenado\b', n) or ('senado' in n and 'incorporad' in n): return 'senado'
+    if 'indicacion' in n: return 'indicacion'
+    if 'en general' in q: return 'general'
+    return 'parte'
+
+def _consecuencia(n, resultado, tramite='', informe='', parte='', clase='parte', si=0, no=0, quorum=''):
+    """Qué pasa ahora con el proyecto, según lo votado y el resultado."""
+    r = _n(resultado); trn = _n(tramite)
+    if not r:
+        return ''
+    ap = 'aprob' in r
+    nota_q = ' (tuvo más votos a favor que en contra, pero no llegó al mínimo del quórum especial)' if (not ap and si > no) else ''
+    if clase == 'inadmisibilidad':
+        return '¿Y ahora? ' + ('La Sala mantuvo la inadmisibilidad: esa propuesta de cambio no se discute.' if ap else 'La Sala revirtió la decisión: la propuesta de cambio sí podrá votarse.')
+    if clase in ('resolucion', 'acuerdo'):
+        return '¿Y ahora? ' + ('La petición se envía formalmente a la autoridad correspondiente, que no está obligada a cumplirla.' if ap else 'La petición no se envía.')
+    if clase == 'tratado':
+        return '¿Y ahora? ' + ('El tratado sigue su camino (Senado o promulgación) para que Chile quede obligado por él.' if ap else 'Chile no ratifica el tratado por ahora.')
+    if clase == 'veto':
+        return '¿Y ahora? ' + ('El cambio pedido por el Presidente queda incorporado a la ley.' if ap else 'La Cámara rechazó la observación; el Congreso puede insistir en su texto original con 2/3 de los votos.')
+    if clase == 'mixta' or 'mixta' in trn:
+        return '¿Y ahora? ' + ('Si el Senado también la aprueba, el proyecto queda despachado al Presidente para ser ley.' if ap else 'Al rechazar la propuesta, no hay ley en los puntos en disputa (salvo insistencia del Presidente con quórum especial).')
+    if clase == 'senado' or 'tercer' in trn:
+        return '¿Y ahora? ' + ('Con los cambios del Senado aceptados, el proyecto queda despachado por el Congreso y pasa al Presidente para promulgarlo.' if ap else 'Al rechazar los cambios del Senado' + nota_q + ', el proyecto va a una Comisión Mixta de diputad@s y senador@s para buscar un acuerdo.')
+    if clase == 'indicacion':
+        return '¿Y ahora? ' + ('La propuesta de cambio se incorpora al texto del proyecto.' if ap else 'La propuesta de cambio se descarta' + nota_q + '; el texto sigue como venía de la comisión.')
+    if parte:
+        P = parte[0].upper() + parte[1:]
+        sigue = ' hacia el Senado.' if 'primer' in trn else (' de vuelta al Senado, que revisará las diferencias.' if 'segundo' in trn else '.')
+        return '¿Y ahora? ' + (f'{P} queda dentro del proyecto, que sigue su trámite{sigue}' if ap else f'{P} se cae{nota_q}: no formará parte del proyecto.')
+    if clase == 'general' or 'primer' in _n(informe):
+        return '¿Y ahora? ' + ('La idea de legislar fue aprobada: ahora se discuten y votan los detalles.' if ap else 'La idea de legislar fue rechazada' + nota_q + ': el proyecto no puede volver a presentarse hasta dentro de un año.')
+    sigue = ' hacia el Senado.' if 'primer' in trn else (' de vuelta al Senado.' if 'segundo' in trn else '.')
+    return '¿Y ahora? ' + (f'El proyecto sigue su trámite{sigue}' if ap else 'El proyecto se detiene en este punto' + nota_q + '.')
+
+def _titular(que, parte, resultado, si, no, n, clase='parte', quorum=''):
+    """Una sola línea con lo esencial, para el listado y el inicio del recuadro."""
+    r = _n(resultado)
+    res = ('Aprobado' if 'aprob' in r else 'Rechazado' if 'rechaz' in r else (resultado or '')) + (f' {si}-{no}' if (si or no) else '')
+    if 'rechaz' in r and si > no:
+        res += ' (no alcanzó el quórum)'
+    base = {'inadmisibilidad': 'Se decide si una propuesta de cambio puede discutirse', 'veto': 'Veto del Presidente', 'mixta': 'Propuesta de la Comisión Mixta',
+            'senado': 'Cambios hechos por el Senado', 'indicacion': 'Propuesta de cambio al texto (indicación)', 'tratado': 'Tratado internacional',
+            'resolucion': 'Petición al Gobierno (no es ley)', 'acuerdo': 'Proyecto de acuerdo (no es ley)', 'general': 'Idea de legislar (votación en general)'}.get(clase)
+    if not base:
+        if parte: base = parte[0].upper() + parte[1:] + (' (votado aparte)' if 'separada' in n else '')
+        elif 'en general' in que.lower(): base = 'Idea de legislar (votación en general)'
+        elif 'resto del texto' in que: base = 'Resto del texto del proyecto'
+        else: base = 'Texto del proyecto'
+    return f'{base} · {res}'.strip(' ·')
 
 # ----------------------------------------------------------------- PASOS DE TRAMITACIÓN (Senado / Cámara)
 def explicar_tramite(que, etapa='', camara=''):

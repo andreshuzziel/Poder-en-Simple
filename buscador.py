@@ -442,7 +442,7 @@ def ficha_proyecto(bol):
         nombre_p = txt(e, 'Nombre')
         for v in vots:
             v['exp'] = explicador.explicar_votacion(v['articulo'], v['tramite'], v.get('tramite_regl', ''), v['quorum'], v['resultado'],
-                                                    v['si'], v['no'], v['abst'], 'Proyecto de Ley', nombre_p)['texto']
+                                                    v['si'], v['no'], v['abst'], 'Proyecto de Ley', nombre_p)
         autores = []
         for a in e.findall('c:Autores/c:ParlamentarioAutor', NS) + e.findall('c:Autores/c:Diputado', NS):
             n = ' '.join(x for x in [txt(a, 'Nombre'), txt(a, 'ApellidoPaterno'), txt(a, 'ApellidoMaterno')] if x)

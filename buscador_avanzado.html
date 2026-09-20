@@ -62,6 +62,24 @@
   .simple{margin-top:8px; padding:9px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#3d2e00; font-size:14px; line-height:1.6;}
   body.dark .simple{background:#2a2410; border-color:#7a6320; color:#ffe9a8;}
   .timeline .simple{font-size:13px; margin-top:5px;}
+
+  .glos{border-bottom:2px dotted #b98a00; cursor:help; color:inherit;}
+  .glos:hover, .glos:focus{background:#fff1b8; outline:none;}
+  body.dark .glos{border-bottom-color:#ffd75e;} body.dark .glos:hover, body.dark .glos:focus{background:#4a3d10;}
+  .glos-pop{display:block; position:relative; margin:6px 0; padding:10px 34px 10px 12px; background:#1d3a8f; color:#fff; border-radius:10px; font-size:13.5px; line-height:1.55; font-weight:400; box-shadow:0 6px 18px rgba(0,0,0,.18); max-width:560px;}
+  .glos-pop b{color:#ffd75e;} .glos-pop .glos-x{position:absolute; top:6px; right:8px; background:transparent; border:none; color:#fff; font-size:15px; cursor:pointer;}
+  .simple .titular{display:block; font-size:15.5px; font-weight:800; margin-bottom:6px; color:#3d2e00;} body.dark .simple .titular{color:#ffe9a8;}
+  .simple .ahora{display:block; margin-top:6px; font-weight:700;}
+  .simple .mas{margin-top:6px;} .simple .mas summary{cursor:pointer; font-weight:700; color:#7a5a00;} body.dark .simple .mas summary{color:#ffd75e;}
+  .simple .aviso-auto{display:block; margin-top:8px; font-size:11.5px; color:#7a6320; font-weight:400;} body.dark .simple .aviso-auto{color:#c9b36a;}
+  .simple .aviso-auto a{color:inherit; text-decoration:underline;}
+  .comparado{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;}
+  .comparado > div{padding:8px 10px; border-radius:8px; font-size:13px; line-height:1.55; white-space:pre-wrap;}
+  .comparado .hoy{background:#eef2fb; border:1px solid #c7d6f7;} .comparado .prop{background:#e8f7ec; border:1px solid #a9d9b6;}
+  .comparado b{display:block; margin-bottom:4px;}
+  body.dark .comparado .hoy{background:#16213a; border-color:#2f4370;} body.dark .comparado .prop{background:#12301c; border-color:#2c6b3f;}
+  @media (max-width:640px){ .comparado{grid-template-columns:1fr;} }
+  .btn-reintentar{background:#1d3a8f; color:#fff; border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:700; margin-left:6px;}
   .obs-txt{white-space:pre-line; line-height:1.55; overflow-wrap:anywhere;}
   .sugerencia{margin-top:8px; padding:8px 12px; border-radius:10px; background:#fff7d6; border:1px solid #f0d27a; color:#5a4300; font-size:13px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
   .sugerencia .btn-sug{background:#1d3a8f; color:#fff; border:none; border-radius:99px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:700;}
@@ -305,7 +323,7 @@ async function abrir(r){
     const d = await res.json();
     if(d.error) throw new Error(d.error);
     fc.innerHTML = (tipo==='proyecto') ? fichaProyecto(d, r) : fichaPersona(d, r);
-    activarSubtabs(); activarVotos(d);
+    activarSubtabs(); activarVotos(d); marcarGlosario(fc);
     try{ history.replaceState(null, '', `#q=${encodeURIComponent(ultimaQ)}&tipo=${tipo}&ref=${encodeURIComponent(ref)}`); }catch(e){}
   }catch(e){
     fc.innerHTML = `<h2 class="tit">${esc(r.titulo)}</h2><div class="aviso">⚠️ No fue posible descargar la ficha en este momento (${esc(e.message)}). ${r.url?`Puedes verla en la fuente oficial: <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>`:''}</div>`;
@@ -362,7 +380,8 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-camara">${c&&c.votaciones.length ? c.votaciones.slice().reverse().map((v,i) => `
     <div class="vot" data-vid="${esc(v.id)}">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.tramite||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
-      ${v.exp?`<div class="simple">💬 <b>En simple, ¿qué se votó aquí?</b> ${esc(v.exp)}</div>`:''}
+      ${v.exp?renderSimple(v.exp, {oficialHref: c.url}):''}
+      ${v.exp && v.exp.propuesta ? `<div id="comparado-cam-${esc(v.id)}">${renderComparado(v.exp.propuesta, null)}</div>` : ''}
       <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
       ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
       ${v.votos ? `<button class="btn-det" data-det="cam-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-${esc(v.id)}" class="det" style="display:none"></div>` : `<div class="nota-metodo mt">Detalle por diputad@ disponible para las 6 votaciones más recientes de este proyecto.</div>`}
@@ -372,7 +391,7 @@ function fichaProyecto(d, r){
   html += `<div class="sub" id="s-senado">${sv.length ? sv.slice().reverse().map((v,i) => `
     <div class="vot">
       <div class="cab"><b>${esc(v.fecha)} · ${esc(v.etapa||'')} ${v.tipo?'· '+esc(v.tipo):''}</b><span class="res ${v.si>v.no?'ok':'no'}">${v.si>v.no?'Aprobado':'Rechazado'}</span></div>
-      ${v.exp?`<div class="simple">💬 <b>En simple, ¿qué se votó aquí?</b> ${esc(v.exp)}</div>`:''}
+      ${v.exp?renderSimple(v.exp, {oficialHref: s && s.url}):''}
       <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.tema||'')}${v.quorum?' · Quórum: '+esc(v.quorum):''}${v.pareo?' · Pareos: '+v.pareo:''} · Sesión ${esc(v.sesion)}</div>
       ${barra(v.si, v.no, v.abst)}
       <button class="btn-det" data-det="sen-${i}">👥 Ver cómo votó cada senador/a</button><div id="sen-${i}" class="det" style="display:none"></div>
@@ -416,7 +435,8 @@ function activarSubtabs(){
   const be = $('#btn-escuchar');
   if(be) be.addEventListener('click', () => {
     if(!('speechSynthesis' in window)){ alert('Tu navegador no tiene lectura en voz alta.'); return; }
-    const txt = ($('#ficha-contenido h2')||{}).textContent + '. ' + ($('#explica')||{}).textContent;
+    const simples = $$('#ficha-contenido .sub .simple').slice(0, 6).map(s => s.textContent.replace(/ℹ️ Explicación automática[\s\S]*$/, '').replace(/Ver más:[^\n]*/, '')).join('. ');
+    const txt = ($('#ficha-contenido h2')||{}).textContent + '. ' + ($('#explica')||{}).textContent + (simples ? '. Votaciones, en simple: ' + simples : '');
     speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(txt); u.lang = 'es-CL'; speechSynthesis.speak(u);
   });
 }
@@ -434,7 +454,10 @@ function activarVotos(d){
       const r = await fetch('/api/contexto?texto=' + encodeURIComponent(b.dataset.texto || ''));
       const d = await r.json(); if(d.error) throw new Error(d.error);
       caja.innerHTML = renderContexto(d) || '<div class="nota-metodo">Este texto no cita otras leyes ni artículos: se vota el proyecto tal cual está descrito arriba.</div>';
-    }catch(e){ caja.innerHTML = '<div class="nota-metodo">⚠️ No se pudo consultar LeyChile en este momento (' + esc(e.message) + ').</div>'; }
+      const cmp = document.getElementById('comparado-' + b.dataset.ctx.replace('ctx-','')); const vx = (c && c.votaciones || []).find(x => 'ctx-cam-'+x.id === b.dataset.ctx);
+      if(cmp && vx && vx.exp && vx.exp.propuesta) cmp.innerHTML = renderComparado(vx.exp.propuesta, d);
+      marcarGlosario(caja);
+    }catch(e){ caja.dataset.listo = ''; caja.innerHTML = '<div class="nota-metodo">⚠️ No se pudo consultar LeyChile en este momento (' + esc(e.message) + '). <button type="button" class="btn-reintentar">↻ Reintentar</button></div>'; caja.querySelector('.btn-reintentar').addEventListener('click', () => { caja.style.display='none'; b.click(); }); }
   }));
   $$('.btn-det:not(.btn-ctx)').forEach(b => b.addEventListener('click', () => {
     const caja = document.getElementById(b.dataset.det); if(!caja) return;
@@ -453,6 +476,107 @@ function activarVotos(d){
   }));
 }
 function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function renderSimple(ex, opts){
+  /* ex: {titular, que, contexto, quorum, resultado, consecuencia, propuesta} — o un string (texto plano) */
+  opts = opts || {};
+  if(!ex) return '';
+  if(typeof ex === 'string') return `<div class="simple"><b>💬 En simple:</b> ${esc(ex)}${avisoAuto(opts)}</div>`;
+  const tit = ex.titular ? `<span class="titular">💬 ${esc(ex.titular)}</span>` : '<b>💬 En simple:</b> ';
+  const detalle = [ex.contexto, ex.quorum].filter(Boolean).map(esc).join(' ');
+  return `<div class="simple">${tit}${esc(ex.que||'')}${ex.resultado?' <b>'+esc(ex.resultado)+'</b>':''}
+    ${ex.consecuencia?`<span class="ahora">➡️ ${esc(ex.consecuencia)}</span>`:''}
+    ${detalle?`<details class="mas"><summary>Ver más: en qué etapa está y qué quórum exigía</summary><div>${detalle}</div></details>`:''}
+    ${avisoAuto(opts)}</div>`;
+}
+function avisoAuto(opts){
+  return `<span class="aviso-auto">ℹ️ Explicación automática elaborada a partir del texto oficial; el texto oficial siempre manda. ${opts.oficialHref?`<a href="${opts.oficialHref}" target="_blank" rel="noopener">¿Algo no cuadra? Revisa la fuente oficial</a>.`:'Si algo no cuadra, revisa el texto oficial que aparece más abajo.'}</span>`;
+}
+function renderComparado(propuesta, ctx){
+  /* 'así dice hoy' (LeyChile) vs 'así quedaría' (texto propuesto en la votación) */
+  if(!propuesta) return '';
+  let hoy = '';
+  if(ctx && ctx.citas) for(const c of ctx.citas) for(const a of (c.articulos||[])) if(a.texto){ hoy = `<b>📕 Así dice hoy (${esc(c.cita)}, artículo ${esc(a.n)})</b>${esc(a.texto)}`; break; }
+  return `<div class="comparado">${hoy?`<div class="hoy">${hoy}</div>`:`<div class="hoy"><b>📕 Así dice hoy</b>Es un texto nuevo: no reemplaza un artículo existente (o la norma citada no está disponible en este momento).</div>`}<div class="prop"><b>📗 Así quedaría si se aprueba (texto propuesto en la votación)</b>${esc(propuesta)}</div></div>`;
+}
+
+/* ---------- glosario emergente (palabras del Congreso, explicadas al tocarlas) ---------- */
+const GLOS = {
+  'indicación': 'Propuesta concreta para cambiar el texto de un proyecto (agregar, quitar o reemplazar palabras o artículos). La pueden presentar parlamentari@s o el Gobierno.',
+  'indicaciones': 'Propuestas concretas para cambiar el texto de un proyecto. Las estudia la comisión y, si alguien lo pide, las vota la Sala.',
+  'quórum simple': 'Basta con más votos a favor que en contra entre quienes están presentes.',
+  'quórum calificado': 'Necesita el voto a favor de la mayoría absoluta de tod@s l@s parlamentari@s en ejercicio (78 de 155 diputad@s; 26 de 50 senador@s), estén o no presentes.',
+  'quórum especial': 'Exige más votos que una ley común: mayoría absoluta (78), 4/7 (89) o 2/3 (104) de l@s 155 diputad@s en ejercicio.',
+  'quórum': 'Mínimo de votos que necesita algo para aprobarse. Puede ser simple (mayoría de presentes) o especial (una fracción de tod@s l@s parlamentari@s).',
+  'pareo': 'Acuerdo entre dos parlamentari@s de posiciones opuestas: si uno no puede asistir, el otro no vota, para que la ausencia no cambie el resultado.',
+  'pareos': 'Acuerdos entre parlamentari@s de posiciones opuestas para no votar cuando uno de ellos está ausente.',
+  'inadmisible': 'Que no puede discutirse porque choca con una regla: por ejemplo, solo el Presidente puede proponer gasto público o crear impuestos.',
+  'inadmisibilidad': 'Decisión de que una propuesta no puede discutirse porque choca con una regla (por ejemplo, propone gasto público, que solo el Presidente puede iniciar).',
+  'comisión mixta': 'Grupo de 5 diputad@s y 5 senador@s que se forma cuando las dos cámaras no se ponen de acuerdo en el texto, para proponer una salida.',
+  'oficio': 'Comunicación oficial por escrito entre instituciones (por ejemplo, la Cámara le envía el proyecto aprobado al Senado mediante un oficio).',
+  'cuenta': 'Momento al inicio de cada sesión en que se informa a la Sala de los documentos recibidos (proyectos, informes, urgencias, oficios).',
+  'la sala': 'La reunión de tod@s l@s diputad@s (o senador@s) en el hemiciclo. Es donde se vota; las comisiones solo estudian y proponen.',
+  'la mesa': 'Quienes dirigen la Cámara: presidente/a y vicepresidentes. Deciden, por ejemplo, si una indicación es admisible.',
+  'mensaje': 'Proyecto de ley presentado por el Presidente de la República (a diferencia de una moción, que la presentan parlamentari@s).',
+  'moción': 'Proyecto de ley presentado por parlamentari@s (máximo 10 diputad@s o 5 senador@s). Si lo presenta el Presidente se llama mensaje.',
+  'idea de legislar': 'La pregunta de fondo en la primera votación: ¿queremos una ley sobre este tema? Solo después se discute el detalle.',
+  'en general': 'Votación sobre la idea de legislar (si vale la pena hacer una ley sobre el tema), sin entrar al detalle de cada artículo.',
+  'en particular': 'Votación del detalle: artículo por artículo, o de las partes que alguien pidió votar por separado.',
+  'votación separada': 'Cuando un@ parlamentari@ pide que una parte del texto se vote aparte del resto, para poder rechazar o aprobar solo esa parte.',
+  'artículo transitorio': 'Artículo que regula el paso de la ley antigua a la nueva: plazos, etapas de entrada en vigencia, qué pasa con situaciones ya en curso.',
+  'artículos transitorios': 'Artículos que regulan el paso de la ley antigua a la nueva: plazos, etapas, situaciones ya en curso.',
+  'urgencia': 'Herramienta del Presidente para apurar un proyecto: simple (30 días), suma (15 días) o discusión inmediata (6 días) para que la cámara lo despache.',
+  'veto': 'Observaciones del Presidente a una ley ya aprobada por el Congreso, para cambiarla, agregarle o quitarle algo antes de promulgarla. El Congreso las vota.',
+  'promulgar': 'Acto por el que el Presidente firma la ley y ordena que se cumpla. Después se publica en el Diario Oficial y empieza a regir.',
+  'promulgación': 'Firma del Presidente que convierte el texto aprobado por el Congreso en ley. Después se publica en el Diario Oficial.',
+  'diario oficial': 'Periódico del Estado donde se publican las leyes. Desde su publicación la ley rige para todos (salvo que ella misma fije otra fecha).',
+  'cámara revisora': 'La segunda cámara que revisa un proyecto. Si nació en la Cámara de Diputados, la revisora es el Senado, y viceversa.',
+  'cámara de origen': 'La cámara donde se presentó el proyecto y que lo vota primero.',
+  'primer trámite': 'Primera etapa: la cámara de origen estudia y vota el proyecto. Si lo aprueba, pasa a la otra cámara.',
+  'segundo trámite': 'Segunda etapa: la otra cámara revisa el proyecto ya aprobado por la primera. Puede aprobarlo igual, cambiarlo o rechazarlo.',
+  'tercer trámite': 'Tercera etapa: la cámara de origen decide si acepta los cambios que le hizo la otra cámara. Si no, va a Comisión Mixta.',
+  'primer informe': 'Documento de la comisión tras estudiar el proyecto por primera vez: explica de qué trata y propone un texto para votar la idea de legislar.',
+  'segundo informe': 'Documento de la comisión tras revisar las indicaciones (cambios propuestos): deja el texto listo para votarse artículo por artículo.',
+  'comisión investigadora': 'Grupo de diputad@s que fiscaliza actos del Gobierno o de un servicio público sobre un tema concreto y emite un informe con conclusiones.',
+  'acusación constitucional': 'Mecanismo para hacer responsable a una autoridad (ministros, jueces, etc.) por infringir la Constitución o las leyes: la Cámara acusa y el Senado juzga.',
+  'tribunal constitucional': 'Órgano que revisa que las leyes respeten la Constitución, antes de que se promulguen (control obligatorio para algunas) o por reclamo de parlamentari@s.',
+  'proyecto de resolución': 'Petición formal de la Cámara al Gobierno u otra autoridad. No es una ley y no obliga, pero fija una postura política.',
+  'proyecto de acuerdo': 'Declaración o petición de la Cámara sobre un tema; también es la forma en que el Congreso aprueba tratados internacionales. No crea leyes.',
+  'ley orgánica constitucional': 'Ley que regula materias que la Constitución considera especialmente importantes (educación, elecciones, tribunales…). Necesita 4/7 de l@s parlamentari@s en ejercicio.',
+  'boletín': 'Número de identificación de cada proyecto (ej. 15480-13). Los dígitos finales indican la comisión/materia.',
+};
+function marcarGlosario(root){
+  root = root || document;
+  const claves = Object.keys(GLOS).sort((a,b)=>b.length-a.length);
+  const re = new RegExp('(^|[^\\\\wáéíóúñ@])(' + claves.map(k=>k.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')).join('|') + ')(?![\\\\wáéíóúñ@])', 'gi');
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(n){
+    if(!n.nodeValue.trim() || !n.parentElement) return NodeFilter.FILTER_REJECT;
+    if(n.parentElement.closest('.glos, pre, a, button, summary, .obs-txt, dl.obs, h1, h2, h3, .tag, .chip, script, style, input, textarea')) return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT; } });
+  const nodos = []; while(walker.nextNode()) nodos.push(walker.currentNode);
+  for(const n of nodos){
+    if(!re.test(n.nodeValue)){ re.lastIndex = 0; continue; } re.lastIndex = 0;
+    const span = document.createElement('span');
+    span.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).replace(re, (m, pre, w) => `${pre}<span class="glos" tabindex="0" role="button" aria-label="Ver definición de ${w}">${w}</span>`);
+    n.parentNode.replaceChild(span, n);
+  }
+}
+function mostrarGlos(el){
+  document.querySelectorAll('.glos-pop').forEach(p=>p.remove());
+  const k = el.textContent.toLowerCase(); const def = GLOS[k] || GLOS[Object.keys(GLOS).find(x => x.toLowerCase() === k)] || '';
+  if(!def) return;
+  const pop = document.createElement('div'); pop.className = 'glos-pop'; pop.setAttribute('role','tooltip');
+  pop.innerHTML = `<b>📖 ${el.textContent}</b><br>${def}<button type="button" class="glos-x" aria-label="Cerrar">✕</button>`;
+  el.insertAdjacentElement('afterend', pop);
+  pop.querySelector('.glos-x').addEventListener('click', e => { e.stopPropagation(); pop.remove(); });
+}
+document.addEventListener('click', e => {
+  const g = e.target.closest('.glos');
+  if(g){ e.preventDefault(); e.stopPropagation(); const open = g.nextElementSibling && g.nextElementSibling.classList.contains('glos-pop'); document.querySelectorAll('.glos-pop').forEach(p=>p.remove()); if(!open) mostrarGlos(g); return; }
+  if(!e.target.closest('.glos-pop')) document.querySelectorAll('.glos-pop').forEach(p=>p.remove());
+});
+document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.classList && e.target.classList.contains('glos')) { e.preventDefault(); mostrarGlos(e.target); } if(e.key === 'Escape') document.querySelectorAll('.glos-pop').forEach(p=>p.remove()); });
+
 function renderContexto(ctx){
   if(!ctx || !ctx.citas || !ctx.citas.length) return '';
   const fmtF = f => f ? f.split('-').reverse().join('/') : '';

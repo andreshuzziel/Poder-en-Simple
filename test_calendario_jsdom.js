@@ -117,13 +117,24 @@ if (vObs) {
   window.abrirDetalle(vObs.id);
   const dc = $('#det-contenido').textContent;
   t('la ficha muestra la observación íntegra, sin recortes', dc.includes(vObs.obs.articulo));
-  t('explica "en simple" qué se está votando (recuadro amarillo antes del texto oficial)', !!$('#det-contenido .simple') && /En simple/.test($('#det-contenido .simple').textContent) && $('#det-contenido .simple').textContent.length > 80);
+  t('explica "en simple" qué se está votando (recuadro amarillo con titular, antes del texto oficial)', !!$('#det-contenido .simple .titular') && $('#det-contenido .simple').textContent.length > 80);
+  t('dice qué pasa ahora (➡️ ¿Y ahora?) y deja trámite/quórum en "ver más"', /¿Y ahora\?/.test($('#det-contenido .simple .ahora').textContent) && !!$('#det-contenido .simple details.mas'));
+  t('aviso de explicación automática + enlace a la fuente oficial', /texto oficial siempre manda/.test($('#det-contenido .aviso-auto').textContent) && !!$('#det-contenido .aviso-auto a[target="_blank"]'));
+  t('glosario emergente: palabras marcadas y definición al tocar', $$('#det-contenido .glos').length >= 1 && ($('#det-contenido .glos').click(), !!$('.glos-pop')));
+  const nGen = D.votaciones.filter(v => v.exp && /no detalla una parte/.test(v.exp.que)).length;
+  t(`las observaciones vacías se explican por su etapa (idea de legislar / resto del texto / acuerdos de Sala): genéricas = ${nGen}`, nGen === 0);
+  t('votaciones "Otros" explicadas (acusación constitucional, comisión investigadora…)', D.votaciones.some(v => v.exp && /acusación constitucional/i.test(v.exp.que)) && D.votaciones.some(v => v.exp && /comisión investigadora/i.test(v.exp.que)));
+  t('todas traen consecuencia ("¿Y ahora?") y titular', D.votaciones.every(v => v.exp && v.exp.titular && v.exp.consecuencia));
+  const vProp = D.votaciones.find(v => v.exp && v.exp.propuesta);
+  t('cuando la votación trae texto propuesto, se muestra el comparado "así quedaría"', !!vProp && (window.abrirDetalle(vProp.id), !!$('#comparado-box .comparado .prop')));
+  window.abrirDetalle(vObs.id);
   const nExp = D.votaciones.filter(v => v.exp && v.exp.que).length;
   t(`todas las votaciones del snapshot traen explicación en simple (${nExp}/${D.votaciones.length})`, nExp === D.votaciones.length);
   t('las explicaciones distinguen tipos: cambios del Senado, indicaciones, inadmisibilidad, partes del proyecto', ['acepta los cambios que el Senado','propuesta para cambiar el texto','inadmisible','Se vota el artículo'].every(s => D.votaciones.some(v => v.exp && v.exp.que.includes(s))));
   t('explica trámite, informe, quórum y resultado en lista', $$('#det-contenido .obs dt').length >= 4 && /Resultado/.test(dc));
   t('trámite constitucional traducido a simple', /primera cámara|otra cámara|cambios que le hizo|acuerdo|observaciones del Presidente/.test(dc));
   t('caja "estado actual en vivo" presente', !!$('#obs-vivo'));
+  t('el listado del día muestra una línea "en simple" por votación sin abrir la ficha', (() => { const c = $('#cal .dia.con[data-f="' + vObs.fecha + '"]'); if(c) c.dispatchEvent(new window.MouseEvent('click', {bubbles:true})); const li = $$('#dia-lista .linea-simple'); const ok = li.length > 0 && /·/.test(li[0].textContent); window.abrirDetalle(vObs.id); return ok; })());
   t('enlace a la ficha completa en el buscador avanzado (con boletín)', !!$(`#det-contenido a[href*="buscador_avanzado.html#q=${encodeURIComponent(vObs.boletin)}"]`));
 }
 // simula el modo en vivo: el servidor responde con estado + contexto de normas citadas
@@ -140,7 +151,7 @@ setTimeout(() => {
 }, 200);
 setTimeout(() => {
   const ov = $('#obs-vivo');
-  t('sin servidor, la caja en vivo explica que necesita el modo en vivo', !!ov && /modo en vivo/.test(ov.textContent));
+  t('sin servidor, la caja en vivo explica que necesita el modo en vivo y ofrece reintentar', !!ov && /modo en vivo/.test(ov.textContent) && !!ov.querySelector('.btn-reintentar'));
   console.log(`\nRESULTADO: ${pass} pass, ${fail} fail`);
   process.exit(fail ? 1 : 0);
 }, 600);

@@ -162,7 +162,7 @@ def main():
             'que': vm.get('que'), 'quorum': vm.get('quorum'), 'obs': vm.get('obs'),
             'exp': explicador.explicar_votacion((vm.get('obs') or {}).get('articulo'), (vm.get('obs') or {}).get('tramite'),
                                                 (vm.get('obs') or {}).get('informe'), vm.get('quorum'), f['resultado'],
-                                                f['si'], f['no'], f['abst'], f['tipo'], p.get('n'))})
+                                                f['si'], f['no'], f['abst'], f['tipo'], p.get('n'), f['desc'])})
         out['votaciones'][-1]['exp'].pop('texto', None)   # 'texto' repite los otros campos: no se guarda
     json.dump(out, open(SALIDA, 'w'), ensure_ascii=False)
     print(f'OK {SALIDA} · {len(out["votaciones"])} votaciones · '
