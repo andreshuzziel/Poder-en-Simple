@@ -85,6 +85,15 @@ def cached(key, fn, fresh=False):
         CACHE[key] = {'v': v, 't': time.time(), 'cached': False}
     return v
 
+def olvidar(prefijo):
+    """Borra de la RAM todo lo que empiece con ese prefijo (p. ej. los documentos de un proyecto al cerrar su ficha)."""
+    with LOCK:
+        claves = [k for k in CACHE if k.startswith(prefijo)]
+        for k in claves:
+            del CACHE[k]
+    import gc; gc.collect()
+    return len(claves)
+
 def de_latin1(s):
     return s.encode('latin-1', 'ignore').decode('unicode_escape') if '\\x' in s else s
 
@@ -810,6 +819,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b)
 
+    def do_POST(self):
+        # sendBeacon del navegador al cerrar la ficha de un proyecto → borrar sus documentos de la RAM
+        if urllib.parse.urlparse(self.path).path == '/api/documentos/cerrar':
+            return self.do_GET()
+        self._json({'error': 'no disponible'}, 404)
+
     def do_GET(self):
         p = urllib.parse.urlparse(self.path)
         if p.path in ('/', '/index.html'):
@@ -897,11 +912,17 @@ class Handler(BaseHTTPRequestHandler):
                     pid = ((f.get('camara') or {}).get('pid')) or ''
                 if not pid:
                     self._json({'error': 'La Cámara no tiene ficha para este boletín; no hay documentos que leer.', 'documentos': []}); return
-                # RAM de corta duración: si dos personas abren el mismo proyecto no se descarga dos veces
-                self._json(cached(f'docs:{pid}:{bol}:{fecha}', lambda: documentos.recolectar(pid, bol, fecha)))
+                tanda = 2 if qs.get('tanda', ['1'])[0] == '2' else 1
+                # RAM de corta duración: si dos personas abren el mismo proyecto no se descarga dos veces; se borra al cerrar la ficha
+                self._json(cached(f'docs:{pid}:{bol}:{fecha}:{tanda}', lambda: documentos.recolectar(pid, bol, fecha, tanda=tanda)))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e), 'documentos': []}, 500)
+        elif p.path == '/api/documentos/cerrar':  # la ficha se cerró: se eliminan de la memoria todos los documentos de ese proyecto
+            qs = urllib.parse.parse_qs(p.query)
+            pid = qs.get('pid', [''])[0].strip(); bol = qs.get('boletin', [''])[0].strip()
+            n = olvidar(f'docs:{pid}:{bol}:') if pid else 0
+            self._json({'eliminados': n, 'mensaje': 'Documentos eliminados de la memoria del servidor.'})
         elif p.path in ('/informe', '/informe_proyecto.html'):
             try:
                 html = open(_p('informe_proyecto.html'), 'rb').read()

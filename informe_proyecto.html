@@ -642,24 +642,56 @@ function docCard(doc){
     <div class="nota-metodo">${esc(doc.que_es||'')}${doc.caracteres?` · Leído en memoria: ${fmt(doc.caracteres)} caracteres (${esc((doc.formato||'').toUpperCase())})${doc.fuente_texto && /senado/.test(doc.fuente_texto)?' desde la copia publicada por el Senado':''}.`:''}</div>
     ${doc.ocr?`<div class="ocr-aviso">🔍 <b>Texto reconocido por OCR</b> (el documento era una imagen escaneada): se leyeron ${fmt(doc.ocr_paginas)} de ${fmt(doc.ocr_total_paginas)} páginas en este servidor, sin enviarlo a terceros. Confianza estimada ${Math.round((doc.ocr_confianza||0)*100)}%. Puede contener errores en números o nombres: ante cualquier duda, el documento oficial manda.</div>`:''}
     ${cuerpo}${docCitas(doc.citas)}
-    <a class="btn-oficial" href="${esc(doc.url)}" target="_blank" rel="noopener">Abrir el documento oficial en camara.cl ↗</a>
+    <a class="btn-oficial" href="${esc(doc.url)}" target="_blank" rel="noopener">Abrir el documento oficial en ${/senado\.cl/.test(doc.url)?'senado.cl':'camara.cl'} ↗</a>
   </div>`;
 }
+// ---- Documentos en memoria: se descargan TODOS al abrir la ficha y se borran del servidor al cerrarla o cambiar de proyecto
+let DOC_ABIERTO = null;   // {boletin, pid} del proyecto cuyos documentos están cargados en el servidor
+function cerrarDocumentos(){
+  if(!DOC_ABIERTO) return;
+  const u = `/api/documentos/cerrar?boletin=${encodeURIComponent(DOC_ABIERTO.boletin)}&pid=${encodeURIComponent(DOC_ABIERTO.pid)}`;
+  DOC_ABIERTO = null;
+  try{ if(navigator.sendBeacon) navigator.sendBeacon(u); else fetch(u, {keepalive:true}); }catch(e){}
+}
+window.addEventListener('pagehide', cerrarDocumentos);
+window.addEventListener('beforeunload', cerrarDocumentos);
 async function cargarDocumentos(d){
   const caja = $('#doc-cuerpo'); if(!caja) return;
   const pid = (d.camara||{}).pid || '';
   if(!pid){ caja.innerHTML = '<div class="card">La Cámara de Diputadas y Diputados no publica documentos para este boletín (puede haberse tramitado solo en el Senado).</div>'; return; }
+  cerrarDocumentos();                       // si había otro proyecto abierto, sus documentos se eliminan de la memoria
+  DOC_ABIERTO = {boletin: d.boletin, pid};
   try{
     const r = await fetch(`/api/documentos?boletin=${encodeURIComponent(d.boletin)}&pid=${encodeURIComponent(pid)}`);
     const j = await r.json(); if(j.error) throw new Error(j.error);
-    const docs = j.documentos || [];
+    let docs = j.documentos || [];
     if(!docs.length){ caja.innerHTML = '<div class="card">La Cámara aún no publica informes, oficios ni otros documentos para este proyecto.</div>'; return; }
-    const orden = {VETO:0, INICIATIVA:1, INFORMEPLEY:2, INDICACIONPLEY:3, OFICIOPLEY:4};
+    pintarDocumentos(d, j, docs, caja);
+    // Segunda tanda: el resto de los documentos del proyecto (todos), sin bloquear la lectura de los primeros
+    if(j.pendientes > 0 && !window.__sinSegundaTanda){
+      try{
+        const r2 = await fetch(`/api/documentos?boletin=${encodeURIComponent(d.boletin)}&pid=${encodeURIComponent(pid)}&tanda=2`);
+        const j2 = await r2.json();
+        if(!j2.error && DOC_ABIERTO && DOC_ABIERTO.pid === pid){
+          docs = docs.concat(j2.documentos || []);
+          pintarDocumentos(d, Object.assign({}, j, {analizados: (j.analizados||0) + (j2.analizados||0), otros: j2.otros||[], pendientes: 0}), docs, caja);
+        }
+      }catch(e){ const p = $('#doc-pendientes'); if(p) p.innerHTML = `⚠️ No se pudo leer el resto de los documentos (${esc(e.message)}).`; }
+    }
+  }catch(e){
+    caja.innerHTML = `<div class="nota-metodo">⚠️ No se pudieron leer los documentos oficiales en este momento (${esc(e.message)}). <button type="button" class="btn-reintentar" id="btn-re-doc">↻ Reintentar</button></div>`;
+    const b = $('#btn-re-doc'); if(b) b.addEventListener('click', () => { caja.innerHTML = '<div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales…</div>'; cargarDocumentos(d); });
+  }
+}
+function pintarDocumentos(d, j, docs, caja){
+  {
+    const orden = {VETO:0, INICIATIVA:1, INFORMEPLEY:2, COMPARADO:3, INDICACIONPLEY:4, OFICIOPLEY:5};
     docs.sort((a,b) => (orden[a.doc_tipo]??9) - (orden[b.doc_tipo]??9) || String(b.fecha||'').localeCompare(String(a.fecha||'')));
     caja.innerHTML = `<div class="kpis doc-kpis"><div class="kpi"><div class="v">${fmt(j.total_documentos)}</div><div class="k">documentos publicados</div></div><div class="kpi"><div class="v">${fmt(j.analizados)}</div><div class="k">leídos ahora, en memoria</div></div><div class="kpi"><div class="v">${fmt(docs.reduce((s,x)=>s+((x.citas||[]).length),0))}</div><div class="k">leyes citadas detectadas</div></div></div>`
       + docs.map(docCard).join('')
-      + ((j.otros||[]).length ? `<details class="mas"><summary>Otros ${fmt(j.otros.length)} documentos publicados (no leídos en esta consulta)</summary><ul class="doc-lista">${j.otros.map(o => `<li>${esc(o.etiqueta)} · ${esc(o.titulo||'')}${o.fecha?` · ${esc(o.fecha)}`:''}${o.etapa?` · ${esc(o.etapa)}`:''} — <a href="${esc(o.url)}" target="_blank" rel="noopener">abrir ↗</a></li>`).join('')}</ul></details>` : '')
-      + `<p class="nota-metodo mt">${esc(j.nota||'')} Los resúmenes se extraen automáticamente del texto oficial; ante cualquier duda, el documento manda.</p>`;
+      + (j.pendientes > 0 ? `<div class="nota-metodo" id="doc-pendientes"><span class="cargando"></span> Leyendo los otros ${fmt(j.pendientes)} documentos del proyecto (informes, oficios, comparados e indicaciones)… se agregarán aquí mismo.</div>` : '')
+      + ((j.otros||[]).length ? `<details class="mas"><summary>Otros ${fmt(j.otros.length)} documentos publicados (no se pudieron leer en esta consulta)</summary><ul class="doc-lista">${j.otros.map(o => `<li>${esc(o.etiqueta)} · ${esc(o.titulo||'')}${o.fecha?` · ${esc(o.fecha)}`:''}${o.etapa?` · ${esc(o.etapa)}`:''} — <a href="${esc(o.url)}" target="_blank" rel="noopener">abrir ↗</a></li>`).join('')}</ul></details>` : '')
+      + `<p class="nota-metodo mt">${esc(j.nota||'')} Los resúmenes se extraen automáticamente del texto oficial; ante cualquier duda, el documento manda. 🔒 Cuando cierras esta página o cambias de proyecto, todos los documentos se eliminan de la memoria del servidor: no queda nada guardado.</p>`;
     // vetos: llevar el detalle de las observaciones al capítulo 6
     const veto = docs.find(x => x.doc_tipo === 'VETO' && !x.error && x.analisis && (x.analisis.observaciones||[]).length);
     const sv = $('#doc-veto'); if(sv && veto){ const a = veto.analisis; sv.innerHTML = `<h3>📄 Qué dice exactamente el oficio de veto</h3>${a.resumen?`<div class="simple"><b>💬 En simple:</b> ${esc(a.resumen)}</div>`:''}${a.observaciones.map(o => `<div class="doc-obs"><b>${esc(o.titulo)}</b>${o.texto?` — ${esc(o.texto)}`:''}${o.en_simple?` <span class="ahora">➡️ ${esc(o.en_simple)}</span>`:''}${o.fundamento?`<details class="mas"><summary>Fundamento del Presidente</summary><div>${parr(o.fundamento)}</div></details>`:''}</div>`).join('')}<a class="btn-oficial" href="${esc(veto.url)}" target="_blank" rel="noopener">Abrir el oficio de veto en camara.cl ↗</a>`; }
@@ -667,10 +699,7 @@ async function cargarDocumentos(d){
     const ini = docs.find(x => x.doc_tipo === 'INICIATIVA' && !x.error && x.analisis && (x.analisis.fundamentos || x.analisis.objetivos || x.analisis.resumen));
     const si = $('#doc-iniciativa'); if(si && ini){ const a = ini.analisis; si.innerHTML = `<h3>📄 Según el mensaje o moción original</h3>${a.fundamentos?`<b>Qué problema busca resolver:</b>${parr(a.fundamentos, 1200)}`:''}${a.objetivos?`<b>Qué propone:</b>${parr(a.objetivos, 1200)}`:''}${(!a.fundamentos && !a.objetivos)?parr(a.resumen, 1200):''}<a href="#documentos" class="doc-link">Ver el detalle en el capítulo 8 ↓</a>`; }
     marcarGlosario(caja); if(sv) marcarGlosario(sv); if(si) marcarGlosario(si);
-    const idx = $('#indice a[href="#documentos"]'); if(idx && !idx.querySelector('.n')) idx.insertAdjacentHTML('beforeend', `<span class="n">${fmt(j.analizados)}</span>`);
-  }catch(e){
-    caja.innerHTML = `<div class="nota-metodo">⚠️ No se pudieron leer los documentos oficiales en este momento (${esc(e.message)}). <button type="button" class="btn-reintentar" id="btn-re-doc">↻ Reintentar</button></div>`;
-    const b = $('#btn-re-doc'); if(b) b.addEventListener('click', () => { caja.innerHTML = '<div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales…</div>'; cargarDocumentos(d); });
+    const idx = $('#indice a[href="#documentos"]'); if(idx){ const n = idx.querySelector('.n'); if(n) n.textContent = fmt(j.analizados); else idx.insertAdjacentHTML('beforeend', `<span class="n">${fmt(j.analizados)}</span>`); }
   }
 }
 function activarVotos(d){

@@ -20,7 +20,15 @@ function cargar(html, opts={}){
         if (opts.falla) throw new Error('sin conexión');
         let body = {error:'boletín no encontrado'};
         if (u.startsWith('/api/informe') && /15480-13/.test(u)) body = FIX;
-        else if (u.startsWith('/api/documentos')) { if (opts.sinDocs) throw new Error('documentos no disponibles'); body = DOCS; }
+        else if (u.startsWith('/api/documentos/cerrar')) body = {eliminados: 2};
+        else if (u.startsWith('/api/documentos')) {
+          if (opts.sinDocs) throw new Error('documentos no disponibles');
+          if (opts.dosTandas) {
+            if (/tanda=2/.test(u)) body = Object.assign({}, DOCS, {tanda:2, pendientes:0, otros:[], analizados:1,
+              documentos:[Object.assign({}, DOCS.documentos[0], {doc_id:'999999', doc_tipo:'COMPARADO', etiqueta:'📊 Texto comparado', titulo:'Comparado de prueba', url:'https://www.senado.cl/appsenado/index.php?mo=tramitacion&ac=getDocto&iddocto=999999&tipodoc=compa', citas:[]})]});
+            else body = Object.assign({}, DOCS, {pendientes: 1});
+          } else body = DOCS;
+        }
         return { json: async () => body, ok: true };
       };
     }});
@@ -176,6 +184,24 @@ function cargar(html, opts={}){
   t('OCR local: un PDF escaneado (imagen) se convierte en texto y se analiza como veto (2 observaciones, ley 18.010)', /^\[true, true, true, true, true, true/.test(rs), rs);
   t('normalización OCR: "ARTiCULO", "ley No", "Republica" quedan corregidos', rs === '[true, true, true, true, true, true, true]', rs);
 
+  console.log('== 5d. todos los documentos en dos tandas + borrado de memoria al cerrar ==');
+  {
+    const T = cargar(html, {hash:'#boletin=15480-13', dosTandas:true}); await espera(700);
+    const urls = T.win.__urls || [];
+    t('pidió la primera tanda y luego el resto (tanda=2)', urls.some(u => /\/api\/documentos\?boletin=15480-13&pid=16006$/.test(u)) && urls.some(u => /tanda=2/.test(u)), urls.join(' | '));
+    const dc = T.doc.querySelector('#doc-cuerpo');
+    t('el comparado de la segunda tanda aparece en el capítulo 8', /Comparado de prueba/.test(dc.textContent));
+    t('el enlace de un documento del Senado dice senado.cl', /senado\.cl ↗/.test(dc.textContent));
+    t('ya no queda aviso de "leyendo los otros" tras la segunda tanda', !dc.querySelector('#doc-pendientes'));
+    t('el índice suma los documentos de ambas tandas', (T.doc.querySelector('#indice a[href="#documentos"] .n')||{}).textContent === '6');
+    t('aviso ciudadano: los documentos se eliminan de la memoria al cerrar', /se eliminan de la memoria del servidor/.test(dc.textContent));
+    // cambiar de proyecto o cerrar la pestaña → aviso al servidor para borrar la RAM
+    T.win.navigator.sendBeacon = (u) => { T.win.__beacon = (T.win.__beacon||[]).concat(String(u)); return true; };
+    T.win.dispatchEvent(new T.win.Event('pagehide'));
+    t('al cerrar la página avisa al servidor para eliminar los documentos', (T.win.__beacon||[]).some(u => /\/api\/documentos\/cerrar\?boletin=15480-13&pid=16006/.test(u)), JSON.stringify(T.win.__beacon));
+    T.win.dispatchEvent(new T.win.Event('pagehide'));
+    t('no repite el aviso si ya no hay nada abierto', (T.win.__beacon||[]).length === 1);
+  }
   console.log('== 6. índice, imprimir, ejemplos, dark ==');
   d.querySelector('#indice a[href="#vetos"]').click(); await espera(20);
   t('clic en índice marca capítulo activo', d.querySelector('#indice a[href="#vetos"]').classList.contains('on'));

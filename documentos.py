@@ -27,7 +27,8 @@ DOC = 'https://www.camara.cl/verDoc.aspx?prmID={id}&prmTIPO={tipo}'
 DOMINIOS_OK = ('www.camara.cl', 'camara.cl', 'www.senado.cl', 'tramitacion.senado.cl', 'www.bcn.cl',
                'www.leychile.cl', 'www.diariooficial.interior.gob.cl')
 MAX_TXT = 400_000       # caracteres de texto por documento que se conservan en RAM
-MAX_DOCS = 8            # documentos descargados por consulta (los más relevantes)
+MAX_DOCS = 8            # documentos de la PRIMERA tanda (los más relevantes); la segunda tanda lee el resto
+SEN_XML = 'https://tramitacion.senado.cl/wspublico/tramitacion.php?boletin={bol}'
 
 MESES = {'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06', 'jul': '07',
          'ago': '08', 'sep': '09', 'sept': '09', 'oct': '10', 'nov': '11', 'dic': '12'}
@@ -35,6 +36,9 @@ MESES = {'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun':
 
 def _fecha_iso(s):
     """'12 Ago. 2026' → '2026-08-12'."""
+    m2 = re.match(r'\s*(\d{1,2})/(\d{1,2})/(\d{4})', s or '')
+    if m2:
+        return f'{m2.group(3)}-{int(m2.group(2)):02d}-{int(m2.group(1)):02d}'
     m = re.match(r'\s*(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})', s or '')
     if not m:
         return (s or '').strip()
@@ -78,6 +82,37 @@ def _tabla(pagina, pid, bol):
     return filas
 
 
+_SEN_A_CAM = {'info': 'INFORMEPLEY', 'oficio': 'OFICIOPLEY', 'indicacion': 'INDICACIONPLEY', 'veto': 'VETO',
+              'mensaje_mocion': 'INICIATIVA', 'compa': 'COMPARADO'}
+
+
+def _senado_docs(bol):
+    """Documentos que publica el Senado para el mismo boletín (XML abierto). Usa los mismos identificadores que la Cámara."""
+    num = bol.split('-')[0]
+    x = S.http_get(SEN_XML.format(bol=num), timeout=40)
+    out = []
+    for m in re.finditer(r'<(LINK_[A-Z_]+|link_mensaje_mocion)>\s*([^<]+?)\s*</\1>', x):
+        url = m.group(2).replace('&amp;', '&')
+        mi = re.search(r'iddocto=(\d+)', url); mt = re.search(r'tipodoc=(\w+)', url)
+        if not (mi and mt):
+            continue
+        tipo = _SEN_A_CAM.get(mt.group(1))
+        if not tipo:
+            continue
+        # contexto: el registro <informe>/<oficio>/<indicaciones>/<comparado> que contiene el enlace
+        ini = max(x.rfind('<' + tag + '>', 0, m.start()) for tag in ('informe', 'oficio', 'indicaciones', 'comparado', 'iniciativa', 'observaciones'))
+        ctx = x[max(0, ini):m.start()]
+        fecha = re.findall(r'<FECHA(?:INFORME)?>\s*([^<]+)<', ctx)
+        etapa = re.findall(r'<(?:ETAPA|ETAPDESCRIPCION)>\s*([^<]+)<', ctx)
+        desc = re.findall(r'<(?:TRAMITE|DESCRIPCION|DESCRIPCIONTRAMITE|COMPARADO)>\s*([^<]+)<', ctx)
+        cam_url = DOC.format(id=mi.group(1), tipo=tipo)
+        out.append({'doc_id': mi.group(1), 'doc_tipo': tipo, 'url': cam_url if tipo != 'COMPARADO' else url,
+                    'fecha': _fecha_iso(fecha[-1]) if fecha else '', 'etapa': _limpia(etapa[-1]) if etapa else '',
+                    'titulo': _limpia(desc[-1]) if desc else ('Texto comparado' if tipo == 'COMPARADO' else 'Mensaje o moción original (texto con que se presentó el proyecto)' if tipo == 'INICIATIVA' else ''),
+                    'origen': 'Senado', 'fuente': 'senado'})
+    return out
+
+
 def _iniciativa(pid):
     """Enlace al mensaje/moción original (pestaña tramitación)."""
     try:
@@ -109,6 +144,11 @@ def listar_documentos(pid, bol):
                 docs.append(ini)
         except Exception:
             pass
+    # Senado: la misma tramitación publica sus propios enlaces (informes, oficios, indicaciones, comparados, mensaje)
+    try:
+        docs += _senado_docs(bol)
+    except Exception as e:
+        errores.append(f'senado: {type(e).__name__}')
     vistos, unicos = set(), []
     for d in docs:
         k = (d['doc_id'], d['doc_tipo'])
@@ -477,6 +517,7 @@ TIPOS = {
     'INDICACIONPLEY': ('✏️ Boletín de indicaciones', 'Listado de las propuestas concretas de cambio al texto, con quién las presentó.'),
     'VETO': ('🖋️ Observaciones del Presidente (veto)', 'Oficio en que el Presidente de la República propone cambiar, agregar o eliminar partes del texto aprobado por el Congreso, explicando por qué.'),
     'INICIATIVA': ('📄 Mensaje o moción original', 'El texto con que se presentó el proyecto: el problema que busca resolver, sus fundamentos y el articulado inicial.'),
+    'COMPARADO': ('📊 Texto comparado', 'Cuadro que pone lado a lado la ley vigente, el texto del proyecto y los cambios propuestos, para ver exactamente qué cambia.'),
 }
 
 
@@ -496,7 +537,7 @@ def analizar(doc, info):
 
 def _prioridad(d, fecha_ref=''):
     """Qué documentos bajar primero: veto, iniciativa, informes (más recientes primero), indicaciones, oficios."""
-    orden = {'VETO': 0, 'INICIATIVA': 1, 'INFORMEPLEY': 2, 'INDICACIONPLEY': 3, 'OFICIOPLEY': 4}
+    orden = {'VETO': 0, 'INICIATIVA': 1, 'INFORMEPLEY': 2, 'COMPARADO': 3, 'INDICACIONPLEY': 4, 'OFICIOPLEY': 5}
     cerca = 0
     if fecha_ref and d.get('fecha'):
         try:
@@ -508,11 +549,19 @@ def _prioridad(d, fecha_ref=''):
     return (orden.get(d['doc_tipo'], 9), cerca, d.get('fecha', '') and -int(d['fecha'].replace('-', '') or 0))
 
 
-def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True):
-    """Punto de entrada: lista + descarga + análisis + citas. Todo en RAM."""
+def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True, tanda=1):
+    """Punto de entrada: lista + descarga + análisis + citas. Todo en RAM.
+       tanda=1 → los max_docs más relevantes (respuesta rápida); tanda=2 → TODOS los demás documentos del proyecto;
+       max_docs=0 → todo de una vez."""
     from datetime import date
     docs, errores = listar_documentos(pid, bol)
-    elegidos = sorted(docs, key=lambda d: _prioridad(d, fecha_ref))[:max_docs]
+    ordenados = sorted(docs, key=lambda d: _prioridad(d, fecha_ref))
+    if not max_docs:
+        elegidos = ordenados
+    elif tanda == 2:
+        elegidos = ordenados[max_docs:]
+    else:
+        elegidos = ordenados[:max_docs]
     salida = []
 
     def uno(d):
@@ -542,13 +591,14 @@ def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True):
             r = dict(d); r.update({'error': f'{type(e).__name__}: {str(e)[:120]}'})
             return r
 
-    with ThreadPoolExecutor(max_workers=4) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         salida = list(ex.map(uno, elegidos))
     for d in salida:
         d['etiqueta'], d['que_es'] = TIPOS.get(d['doc_tipo'], ('📎 Documento', 'Documento oficial del proyecto.'))
-    resto = [dict(d, etiqueta=TIPOS.get(d['doc_tipo'], ('📎 Documento', ''))[0]) for d in docs if d not in elegidos]
+    resto = [] if (tanda == 2 or not max_docs) else [dict(d, etiqueta=TIPOS.get(d['doc_tipo'], ('📎 Documento', ''))[0]) for d in ordenados[max_docs:]]
     n_ok = sum(1 for d in salida if not d.get('error'))
-    return {'boletin': bol, 'pid': pid, 'fecha_ref': fecha_ref, 'total_documentos': len(docs), 'analizados': n_ok,
+    return {'boletin': bol, 'pid': pid, 'fecha_ref': fecha_ref, 'total_documentos': len(docs), 'analizados': n_ok, 'tanda': tanda,
+            'pendientes': len(resto) if tanda == 1 and max_docs else 0,
             'documentos': salida, 'otros': resto, 'errores': errores, 'generado': date.today().isoformat(),
             'nota': 'Documentos descargados en el momento desde camara.cl (o su copia en senado.cl), leídos en memoria y descartados al terminar. Si un documento es una imagen escaneada, se reconoce su texto con OCR local en el mismo servidor, sin enviarlo a terceros. No se guarda ningún archivo.'}
 
