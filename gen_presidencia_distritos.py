@@ -20,10 +20,14 @@ import re as _re
 import urllib.request
 import zipfile
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
 URL = 'https://www.servel.cl/wp-content/uploads/2025/11/PRELIMINARES_PRESIDENTE_DE_LA_REPUBLICA.zip'
 CACHE = '/tmp/servel_zip/presidencial.zip'
-SNAP = '/home/user/elecciones_resultados.json'
+SNAP = _p('elecciones_resultados.json')
 COLS = ['distrito', 'comuna', 'nombre_candidato', 'votos_preliminares', 'cod_mesa', 'electores']
 
 

@@ -28,7 +28,7 @@ function cargar(html, opts={}){
 }
 
 (async () => {
-  const html = fs.readFileSync('/home/user/informe_proyecto.html', 'utf8');
+  const html = fs.readFileSync(__dirname + '/informe_proyecto.html', 'utf8');
   console.log('== 1. carga y estructura ==');
   const A = cargar(html); const d = A.doc, w = A.win;
   await espera(150);

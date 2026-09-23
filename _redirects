@@ -1,0 +1,7 @@
+/calendario   /calendario_votaciones.html   200
+/proxima      /proxima_eleccion.html        200
+/buscador     /buscador_avanzado.html       200
+/informe      /informe_proyecto.html        200
+/vivo         /dashboard_vivo.html          200
+/elecciones   /elecciones_chile.html        200
+/api/*        /sin_servidor.json            200

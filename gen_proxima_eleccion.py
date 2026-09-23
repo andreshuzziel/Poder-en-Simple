@@ -10,9 +10,13 @@ comuna/circunscripción) y escribe proxima_eleccion_resultados.json.
 """
 import zipfile, io, json, re, urllib.request, gzip, datetime, os, sys
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
-CONF = os.environ.get('PROXIMA_CONF', '/home/user/proxima_eleccion.json')
-DEST = os.environ.get('PROXIMA_DEST', '/home/user/proxima_eleccion_resultados.json')
+CONF = os.environ.get('PROXIMA_CONF', _p('proxima_eleccion.json'))
+DEST = os.environ.get('PROXIMA_DEST', _p('proxima_eleccion_resultados.json'))
 CACHE = '/tmp/servel_zip_proxima'
 os.makedirs(CACHE, exist_ok=True)
 

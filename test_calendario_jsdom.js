@@ -2,7 +2,7 @@
 const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
-const html = fs.readFileSync('/home/user/calendario_votaciones.html', 'utf8');
+const html = fs.readFileSync(__dirname + '/calendario_votaciones.html', 'utf8');
 const errs = [];
 const vc = new VirtualConsole();
 vc.on('jsdomError', e => { if(!/scrollTo\(\) method/.test(e.message)) errs.push('jsdomError: ' + e.message); });

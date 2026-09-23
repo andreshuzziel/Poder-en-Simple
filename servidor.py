@@ -15,6 +15,10 @@ from datetime import datetime, date, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 PUERTO = 8070
 TTL_CACHE = 15 * 60          # segundos que viven los datos en RAM (luego se re-descargan)
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
@@ -791,7 +795,7 @@ def armar_todo(fresh=False):
                        'vicepresidencia': 'Iván Moreira con 37 votos y 12 abstenciones (senado.cl)'},
             'mesas': mesa_out, 'gobierno': gobierno, 'proyectos_periodos': periodos,
             'votos_leyes': votos_rec, 'gastos_hist': gastos_hist, 'noticias': noticias,
-            'fechas_clave': json.load(open('/home/user/fechas_clave.json')), 'meta': meta}
+            'fechas_clave': json.load(open(_p('fechas_clave.json'))), 'meta': meta}
 
 # ------------------------- servidor HTTP -------------------------
 class Handler(BaseHTTPRequestHandler):
@@ -809,7 +813,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         p = urllib.parse.urlparse(self.path)
         if p.path in ('/', '/index.html'):
-            html = open('/home/user/dashboard_vivo.html', 'rb').read()
+            html = open(_p('dashboard_vivo.html'), 'rb').read()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
@@ -825,7 +829,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({'error': str(e)}, 500)
         elif p.path in ('/calendario', '/calendario_votaciones.html'):
             try:
-                html = open('/home/user/calendario_votaciones.html', 'rb').read()
+                html = open(_p('calendario_votaciones.html'), 'rb').read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Cache-Control', 'no-store')
@@ -836,7 +840,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404); self.end_headers()
         elif p.path in ('/proxima', '/proxima_eleccion.html'):
             try:
-                html = open('/home/user/proxima_eleccion.html', 'rb').read()
+                html = open(_p('proxima_eleccion.html'), 'rb').read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Cache-Control', 'no-store')
@@ -847,7 +851,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404); self.end_headers()
         elif p.path in ('/elecciones', '/elecciones_chile.html'):
             try:
-                html = open('/home/user/elecciones_chile.html', 'rb').read()
+                html = open(_p('elecciones_chile.html'), 'rb').read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Cache-Control', 'no-store')
@@ -858,7 +862,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404); self.end_headers()
         elif p.path in ('/buscador', '/buscador_avanzado.html'):
             try:
-                html = open('/home/user/buscador_avanzado.html', 'rb').read()
+                html = open(_p('buscador_avanzado.html'), 'rb').read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Cache-Control', 'no-store')
@@ -900,7 +904,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({'error': str(e), 'documentos': []}, 500)
         elif p.path in ('/informe', '/informe_proyecto.html'):
             try:
-                html = open('/home/user/informe_proyecto.html', 'rb').read()
+                html = open(_p('informe_proyecto.html'), 'rb').read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.send_header('Cache-Control', 'no-store')

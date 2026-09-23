@@ -3,7 +3,7 @@
 const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
-const html = fs.readFileSync('/home/user/index.html', 'utf8');
+const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
 const errs = [];
 const vc = new VirtualConsole();
 vc.on('jsdomError', e => { if(!/scrollTo\(\) method|IntersectionObserver/.test(e.message)) errs.push('jsdomError: ' + e.message); });
@@ -127,7 +127,7 @@ t('restablecer limpia accesibilidad', !doc.body.classList.contains('letra-xg') &
 t('nav incluye Próxima elección', $$('nav.menu a').some(a => a.getAttribute('href') === 'proxima_eleccion.html'));
 t('botón Próxima elección en fechas', !!$('#btn-proxima') && $('#btn-proxima').getAttribute('href') === 'proxima_eleccion.html');
 t('SEO: description, robots, og:title y favicon presentes', !!$('meta[name="description"]') && !!$('meta[name="robots"]') && !!$('meta[property="og:title"]') && !!$('link[rel="icon"]'));
-t('archivo antiguo redirige a index.html', fs.readFileSync('/home/user/dashboard_congreso.html','utf8').includes('url=index.html'));
+t('archivo antiguo redirige a index.html', fs.readFileSync(__dirname + '/dashboard_congreso.html','utf8').includes('url=index.html'));
 const sdR = $('#sel-distrito'); sdR.value = '20'; sdR.dispatchEvent(new window.Event('change'));
 setTimeout(()=>{}, 0);
 t('nav incluye Ranking', $$('nav.menu a').some(a => a.getAttribute('href') === '#ranking'));

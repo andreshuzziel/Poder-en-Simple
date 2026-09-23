@@ -65,7 +65,7 @@ function cargar(html){
 }
 
 (async () => {
-  const html = fs.readFileSync('/home/user/buscador_avanzado.html', 'utf8');
+  const html = fs.readFileSync(__dirname + '/buscador_avanzado.html', 'utf8');
   console.log('== 1. carga y estructura ==');
   const A = cargar(html); const d = A.doc, w = A.win;
   await espera(200);

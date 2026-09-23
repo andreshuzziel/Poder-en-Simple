@@ -16,8 +16,8 @@ function cargar(html){
 }
 
 console.log('== 1. página real (estado esperando) ==');
-const html = fs.readFileSync('/home/user/proxima_eleccion.html', 'utf8');
-const conf = JSON.parse(fs.readFileSync('/home/user/proxima_eleccion.json', 'utf8'));
+const html = fs.readFileSync(__dirname + '/proxima_eleccion.html', 'utf8');
+const conf = JSON.parse(fs.readFileSync(__dirname + '/proxima_eleccion.json', 'utf8'));
 const A = cargar(html);
 t('sin errores js', A.errs.length === 0, JSON.stringify(A.errs.slice(0,2)));
 t('título con nombre de la elección', A.doc.title.includes(conf.nombre));
@@ -32,7 +32,7 @@ t('enlace de vuelta al tablero y a resultados 2025', !!A.doc.querySelector('a[hr
 t('fuente Servel citada, sin base de datos', /Servel/.test(A.doc.querySelector('footer').textContent) && /bases de datos/.test(A.doc.querySelector('footer').textContent));
 
 console.log('== 2. snapshot con datos (simula noche de elección) ==');
-const tpl = fs.readFileSync('/home/user/template_proxima.html', 'utf8');
+const tpl = fs.readFileSync(__dirname + '/template_proxima.html', 'utf8');
 const fake = {
   nombre: 'Elección de prueba', fecha: '2020-01-01', estado: 'preparando', descripcion: 'x', generado: '2020-01-01 22:00',
   cargos: [{ id: 'alc', nombre: 'Alcaldes', emoji: '🏛️', ambito: 'comuna', ambito_nombre: 'comuna', explica: 'e', estado: 'con_datos',

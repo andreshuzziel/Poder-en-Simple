@@ -1,0 +1,21 @@
+name: Actualizar datos y páginas
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 06:00 hora de Chile (aprox.), todos los días
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: pip install requests openpyxl
+      - run: mkdir -p /tmp/jst && cd /tmp/jst && npm init -y >/dev/null && npm i jsdom >/dev/null
+      - run: ./publicar.sh
+        env: { GIT_NAME: github-actions, GIT_EMAIL: actions@github.com }
+      - run: git push

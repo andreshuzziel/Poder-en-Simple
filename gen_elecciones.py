@@ -10,6 +10,10 @@ re-ejecutarlo nunca borre lo agregado por gen_segunda_vuelta.py /
 gen_presidencia_distritos.py."""
 import zipfile, io, json, re, urllib.request, gzip, datetime, os
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
 BASE = 'https://www.servel.cl/wp-content/uploads/2025/11/'
 ARCHIVOS = {
@@ -162,7 +166,7 @@ def conservar_claves_extra(out, destino):
 
 def main():
     import pandas as pd  # noqa
-    destino = '/home/user/elecciones_resultados.json'
+    destino = _p('elecciones_resultados.json')
     out = {'fuente': {'organismo': 'Servicio Electoral de Chile (Servel)',
                       'tipo': 'Resultados preliminares (con actas de mesa) · Elecciones del 16 de noviembre de 2025',
                       'pagina': PAGINA_FUENTE,

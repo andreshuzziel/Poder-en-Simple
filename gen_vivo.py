@@ -3,7 +3,11 @@
 """Genera dashboard_vivo.html a partir de template_dashboard.html:
 convierte el dashboard estático en la versión EN VIVO (descarga al momento, sin base de datos)."""
 
-tpl = open('/home/user/template_dashboard.html', encoding='utf-8').read()
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
+tpl = open(_p('template_dashboard.html'), encoding='utf-8').read()
 
 # 1) Datos embebidos -> fetch en vivo
 old = "const DATA = /*__DATA__*/;"
@@ -125,7 +129,7 @@ tpl = tpl.replace('<a href="#glosario">📖 Glosario</a>',
 
 # ---------- audio resumen (si existe) ----------
 import base64, os, re as _re
-AUDIO = '/home/user/audio_resumen.mp3'
+AUDIO = _p('audio_resumen.mp3')
 MESES_ES = {1:'ene',2:'feb',3:'mar',4:'abr',5:'may',6:'jun',7:'jul',8:'ago',9:'sep',10:'oct',11:'nov',12:'dic'}
 if os.path.exists(AUDIO):
     b64 = base64.b64encode(open(AUDIO, 'rb').read()).decode()
@@ -141,5 +145,5 @@ else:
     tpl = tpl.replace('__AUDIO_FECHA__','').replace('__AUDIO_NOTA__','')
     print('aviso: sin audio_resumen.mp3, tarjeta de audio omitida')
 
-open('/home/user/dashboard_vivo.html', 'w', encoding='utf-8').write(tpl)
+open(_p('dashboard_vivo.html'), 'w', encoding='utf-8').write(tpl)
 print('OK dashboard_vivo.html', len(tpl), 'bytes')

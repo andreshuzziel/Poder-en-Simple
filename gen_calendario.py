@@ -18,10 +18,14 @@ import explicador, time, datetime, urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 NS = {'c': 'http://opendata.camara.cl/camaradiputados/v1'}
 UA = {'Content-Type': 'application/json',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126 Safari/537.36'}
-SALIDA = '/home/user/calendario_votaciones.json'
+SALIDA = _p('calendario_votaciones.json')
 ANIO = 2026
 
 

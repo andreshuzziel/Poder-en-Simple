@@ -29,13 +29,17 @@ import urllib.request
 import zipfile
 
 # FIJADO al commit 6e6684f (2025): si alguien mueve la rama master, el trazado no cambia solo
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 GEO_SHA = '6e6684f3a53f0e2615c3b56306f735590995ef7e'
 GEO_URL = f'https://raw.githubusercontent.com/alvaroparedesl/geochile/{GEO_SHA}/geojson/chile.geojson'
 ZIP_URL = 'https://www.servel.cl/wp-content/uploads/2025/11/PRELIMINARES_DIPUTADOS.zip'
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
 CACHE = '/tmp/geochile'
 ZIP_CACHE = '/tmp/servel_zip'
-SALIDA = '/home/user/elecciones_geografia.json'
+SALIDA = _p('elecciones_geografia.json')
 
 ANCHO = 460            # país estrecho: alto real ≈ 5.1× ancho; no se deforma
 EPS_PX = 0.9           # umbral de simplificación en píxeles del viewBox

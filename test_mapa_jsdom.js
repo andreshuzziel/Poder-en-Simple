@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
-const html = fs.readFileSync('/home/user/elecciones_chile.html', 'utf8');
+const html = fs.readFileSync(__dirname + '/elecciones_chile.html', 'utf8');
 const errs = [];
 const vc = new VirtualConsole();
 vc.on('jsdomError', e => { if(!/scrollTo\(\) method/.test(e.message)) errs.push('jsdomError: ' + e.message); });
@@ -202,7 +202,7 @@ $('#tabla-modo').value = 'reg'; $('#tabla-modo').dispatchEvent(new window.Event(
 t('tabla completa: modo regiones 16 filas', $$('#tabla-full tbody tr').length === 16);
 
 console.log('== 15. exploradores parlamentarios (diputados y senado) ==');
-const DATA = JSON.parse(fs.readFileSync('/home/user/elecciones_resultados.json', 'utf8'));
+const DATA = JSON.parse(fs.readFileSync(__dirname + '/elecciones_resultados.json', 'utf8'));
 const nEscD = Object.values(DATA.diputados.distritos).reduce((s,d)=>s+d.electos.length,0);
 const nEscS = Object.values(DATA.senadores.distritos).reduce((s,d)=>s+d.electos.length,0);
 t('diputados: explorador con 6 subpestañas', $$('#dip-subtabs button').length === 6);

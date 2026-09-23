@@ -6,9 +6,13 @@ from collections import defaultdict, Counter
 from datetime import date
 
 # ---------- datos ----------
-master = json.load(open('/home/user/congreso_data.json'))
-destacadas = json.load(open('/home/user/votaciones_destacadas.json'))
-snap = json.load(open('/home/user/data_completa.json'))  # snapshot verificado (votaciones, desglose, senado)
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
+master = json.load(open(_p('congreso_data.json')))
+destacadas = json.load(open(_p('votaciones_destacadas.json')))
+snap = json.load(open(_p('data_completa.json')))  # snapshot verificado (votaciones, desglose, senado)
 
 # Fuentes vivas opcionales en /tmp: si existen y son válidas se usan; si no, snapshot verificado.
 def _tmp_valid(p, min_bytes=2000):
@@ -22,15 +26,17 @@ if _tmp_valid('/tmp/votaciones2026.json'):
         vots = json.load(open('/tmp/votaciones2026.json'))['rows']
     except Exception:
         vots = None
-if not vots and _tmp_valid('/home/user/votaciones_2026.json', 10000):
-    vots = json.load(open('/home/user/votaciones_2026.json'))
+if not vots:
+    for _cand in (f'votaciones_{date.today().year}.json', 'votaciones_2026.json'):
+        if _tmp_valid(_p(_cand), 10000):
+            vots = json.load(open(_p(_cand))); break
 
 # nombres oficiales de boletines: /tmp → workspace
 nombres_bol = {}
 if _tmp_valid('/tmp/boletines_nombres.json', 10):
     nombres_bol = json.load(open('/tmp/boletines_nombres.json'))
-elif _tmp_valid('/home/user/boletines_nombres.json', 10):
-    nombres_bol = json.load(open('/home/user/boletines_nombres.json'))
+elif _tmp_valid(_p('boletines_nombres.json'), 10):
+    nombres_bol = json.load(open(_p('boletines_nombres.json')))
 
 def proyectos_clave(rows, nombres):
     """Los proyectos con más votaciones: del mes más reciente y de todo el año."""
@@ -156,8 +162,8 @@ pp_block = None
 if vots:
     import os as _os
     leyes_p = []
-    if _os.path.exists('/home/user/leyes_promulgadas.json'):
-        leyes_p = json.load(open('/home/user/leyes_promulgadas.json'))
+    if _os.path.exists(_p('leyes_promulgadas.json')):
+        leyes_p = json.load(open(_p('leyes_promulgadas.json')))
         for l in leyes_p:
             d, m, a = l['fecha_publicacion'].split('-')
             l['_fecha'] = f'{a}-{m}-{d}'
@@ -203,7 +209,7 @@ for g, rows in banc.items():
     })
 bancadas.sort(key=lambda b: -b['n'])
 
-PADRON_DISTRITOS = json.load(open('/home/user/padron_distritos.json'))
+PADRON_DISTRITOS = json.load(open(_p('padron_distritos.json')))
 
 def _fila_dip(r):
     d = {k: r[k] for k in ('id','nombre','militancia','grupo','asist','asist_ef','inas','inas_ef','g_tot','g_per','g_op','n_ases')}
@@ -218,9 +224,9 @@ DATA = {
     'destacadas': destacadas,
     'desglose_op': desglose,
     'senado': senado_block,
-    'gobierno': json.load(open('/home/user/gobierno_snapshot.json')),
+    'gobierno': json.load(open(_p('gobierno_snapshot.json'))),
     'proyectos_periodos': pp_block,
-    'fechas_clave': json.load(open('/home/user/fechas_clave.json')),
+    'fechas_clave': json.load(open(_p('fechas_clave.json'))),
     'mesas': {
         'camara': {
             'presidente': 'Jorge Alessandri (UDI)',
@@ -239,7 +245,7 @@ DATA = {
 # ---------- votos por diputad@ y gasto histórico (en vivo, con respaldo en snapshot) ----------
 def extras_en_vivo():
     import sys as _s
-    _s.path.insert(0, '/home/user')
+    _s.path.insert(0, BASE_DIR)
     import servidor
     votos, ghist = [], []
     try:
@@ -247,22 +253,22 @@ def extras_en_vivo():
     except Exception as e:
         print('votos recientes en vivo fallaron:', e)
     if not votos:
-        try: votos = json.load(open('/home/user/votos_leyes.json'))
+        try: votos = json.load(open(_p('votos_leyes.json')))
         except Exception: pass
     try:
         ghist = servidor.src_gastos_historico()
     except Exception as e:
         print('histórico de gastos en vivo falló:', e)
     if not ghist:
-        try: ghist = json.load(open('/home/user/gastos_hist.json'))
+        try: ghist = json.load(open(_p('gastos_hist.json')))
         except Exception: pass
-    if votos: json.dump(votos, open('/home/user/votos_leyes.json', 'w'), ensure_ascii=False)
-    if ghist: json.dump(ghist, open('/home/user/gastos_hist.json', 'w'), ensure_ascii=False)
+    if votos: json.dump(votos, open(_p('votos_leyes.json'), 'w'), ensure_ascii=False)
+    if ghist: json.dump(ghist, open(_p('gastos_hist.json'), 'w'), ensure_ascii=False)
     return votos, ghist
 
 def noticias_en_vivo():
     import sys as _s
-    _s.path.insert(0, '/home/user')
+    _s.path.insert(0, BASE_DIR)
     import servidor
     nots = {'camara': [], 'senado': [], 'gobierno': []}
     try:
@@ -270,10 +276,10 @@ def noticias_en_vivo():
     except Exception as e:
         print('noticias en vivo fallaron:', e)
     if not any(nots.values()):
-        try: nots = json.load(open('/home/user/noticias.json'))
+        try: nots = json.load(open(_p('noticias.json')))
         except Exception: pass
     if any(nots.values()):
-        json.dump(nots, open('/home/user/noticias.json', 'w'), ensure_ascii=False)
+        json.dump(nots, open(_p('noticias.json'), 'w'), ensure_ascii=False)
     return nots
 
 VOTOS_LEYES, GASTOS_HIST = extras_en_vivo()
@@ -281,12 +287,12 @@ DATA['votos_leyes'] = VOTOS_LEYES
 DATA['gastos_hist'] = GASTOS_HIST
 DATA['noticias'] = noticias_en_vivo()
 
-html = open('/home/user/template_dashboard.html', encoding='utf-8').read()
+html = open(_p('template_dashboard.html'), encoding='utf-8').read()
 html = html.replace('/*__DATA__*/', json.dumps(DATA, ensure_ascii=False))
 
 # ---------- audio resumen (si existe) ----------
 import base64, os, re as _re
-AUDIO = '/home/user/audio_resumen.mp3'
+AUDIO = _p('audio_resumen.mp3')
 MESES_ES = {1:'ene',2:'feb',3:'mar',4:'abr',5:'may',6:'jun',7:'jul',8:'ago',9:'sep',10:'oct',11:'nov',12:'dic'}
 if os.path.exists(AUDIO):
     b64 = base64.b64encode(open(AUDIO, 'rb').read()).decode()
@@ -302,5 +308,5 @@ else:
     html = html.replace('__AUDIO_FECHA__','').replace('__AUDIO_NOTA__','')
     print('aviso: sin audio_resumen.mp3, tarjeta de audio omitida')
 
-open('/home/user/index.html', 'w', encoding='utf-8').write(html)
+open(_p('index.html'), 'w', encoding='utf-8').write(html)
 print('OK index.html', len(html), 'bytes')

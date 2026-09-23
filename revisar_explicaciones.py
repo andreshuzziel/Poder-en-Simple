@@ -4,9 +4,13 @@
 # Uso: python3 revisar_explicaciones.py [cantidad=20] [semilla]
 import json, random, sys, textwrap, explicador
 
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 random.seed(sys.argv[2] if len(sys.argv) > 2 else None)
-cal = json.load(open('/home/user/calendario_votaciones.json', encoding='utf-8'))
+cal = json.load(open(_p('calendario_votaciones.json'), encoding='utf-8'))
 muestra = random.sample(cal['votaciones'], min(n, len(cal['votaciones'])))
 for i, v in enumerate(muestra, 1):
     o = v.get('obs') or {}

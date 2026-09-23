@@ -6,11 +6,15 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-master = json.load(open('/home/user/congreso_data.json'))
-destacadas = json.load(open('/home/user/votaciones_destacadas.json'))
-vots = json.load(open('/home/user/votaciones_2026.json'))  # persistente en el repo (no /tmp)
-nombres_bol = json.load(open('/home/user/boletines_nombres.json'))
-senado = json.load(open('/home/user/senado_presidencia.json'))  # voto por senador/a (mesa del Senado)
+import os as _os
+BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
+def _p(nombre): return _os.path.join(BASE_DIR, nombre)
+
+master = json.load(open(_p('congreso_data.json')))
+destacadas = json.load(open(_p('votaciones_destacadas.json')))
+vots = json.load(open(_p('votaciones_2026.json')))  # persistente en el repo (no /tmp)
+nombres_bol = json.load(open(_p('boletines_nombres.json')))
+senado = json.load(open(_p('senado_presidencia.json')))  # voto por senador/a (mesa del Senado)
 
 kpi, bancadas, dips = master['kpi'], master['bancadas'], master['diputados']
 
@@ -174,7 +178,7 @@ anchos(ws, [26, 22])
 
 # ============ 7. CONSTATACIÓN OFICIAL DE ASISTENCIA ============
 ws = wb.create_sheet('Asistencia oficial camara.cl')
-oficial = json.load(open('/home/user/verificacion_oficial.json'))
+oficial = json.load(open(_p('verificacion_oficial.json')))
 hdr = ['Diputad@ (nombre oficial)', 'Partido', 'Sesiones asistidas (oficial)',
        'Faltas justificadas que NO descuentan', 'Faltas justificadas que SÍ descuentan',
        'Faltas sin justificación', '% asistencia oficial',
@@ -206,5 +210,5 @@ ws.cell(row=ws.max_row, column=1).font = Font(italic=True, color='666666')
 ws.freeze_panes = 'A2'
 anchos(ws, [38, 22, 13, 15, 15, 13, 12, 14, 15, 18])
 
-wb.save('/home/user/datos_congreso.xlsx')
+wb.save(_p('datos_congreso.xlsx'))
 print('OK datos_congreso.xlsx')
