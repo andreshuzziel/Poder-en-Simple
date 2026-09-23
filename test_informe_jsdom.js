@@ -137,8 +137,8 @@ function cargar(html, opts={}){
   const dc = d.querySelector('#doc-cuerpo');
   t('KPIs: documentos publicados, leídos, leyes citadas', dc.querySelectorAll('.kpi').length === 3 && /24/.test(dc.textContent) && /le[ií]dos ahora/.test(dc.textContent));
   const cards = [...dc.querySelectorAll('.doc-card')];
-  t('una tarjeta por documento leído (4) con etiqueta y fecha', cards.length === 4 && cards.every(c => c.querySelector('.doc-tag')));
-  t('orden: veto primero, luego mensaje, luego informes', cards.map(c => c.dataset.tipo).join(',') === 'VETO,INICIATIVA,INFORMEPLEY,INFORMEPLEY');
+  t('una tarjeta por documento leído (5) con etiqueta y fecha', cards.length === 5 && cards.every(c => c.querySelector('.doc-tag')));
+  t('orden: veto primero, luego mensaje, luego informes', cards.map(c => c.dataset.tipo).join(',') === 'VETO,INICIATIVA,INFORMEPLEY,INFORMEPLEY,INFORMEPLEY');
   const cv = cards[0];
   t('veto: resumen en simple y cada observación con su artículo y qué propone', /3 observaciones/.test(cv.textContent) && /AL ARTÍCULO 32/.test(cv.textContent) && /Propone eliminar/.test(cv.textContent));
   t('veto: fundamento del Presidente por observación (anatocismo, olvido financiero)', /anatocismo/i.test(cv.textContent) && /olvido financiero/i.test(cv.textContent));
@@ -154,7 +154,13 @@ function cargar(html, opts={}){
   t('aviso: leídos en el momento, nada se guarda', /No se guarda ning[úu]n archivo/.test(dc.textContent));
   t('capítulo 6: el texto exacto del oficio de veto se integra junto a las votaciones del veto', /Qué dice exactamente el oficio de veto/.test(d.querySelector('#doc-veto').textContent) && /AL ARTÍCULO 40/.test(d.querySelector('#doc-veto').textContent));
   t('capítulo 1: la ficha suma "según el mensaje o moción original"', /Según el mensaje o moción original/.test(d.querySelector('#doc-iniciativa').textContent) && /problema busca resolver/i.test(d.querySelector('#doc-iniciativa').textContent));
-  t('índice muestra cuántos documentos se leyeron', /4/.test((d.querySelector('#indice a[href="#documentos"] .n')||{}).textContent||''));
+  t('índice muestra cuántos documentos se leyeron', /5/.test((d.querySelector('#indice a[href="#documentos"] .n')||{}).textContent||''));
+  const co = cards[4];
+  t('documento escaneado: aviso de OCR con páginas leídas, confianza y "sin enviarlo a terceros"', co.querySelector('.ocr-aviso') && /12 de 41 páginas/.test(co.textContent) && /88%/.test(co.textContent) && /sin enviarlo a terceros/.test(co.textContent));
+  t('documento escaneado: indica que el texto vino de la copia del Senado', /copia publicada por el Senado/.test(co.textContent));
+  t('citas leídas por OCR marcadas "por confirmar"', /por confirmar/.test(co.querySelector('.doc-citas').textContent) && !!co.querySelector('.por-confirmar'));
+  t('el análisis del documento OCR igual se muestra (objetivo, votación en comisión)', /Fortalecer la fiscalización/.test(co.textContent) && /7 votos a favor/.test(co.textContent));
+  t('los documentos con texto normal NO llevan aviso de OCR', cards.slice(0,4).every(c => !c.querySelector('.ocr-aviso')));
   t('sin undefined/null en documentos', !/undefined|null|NaN/.test(dc.textContent));
   const E = cargar(html, {hash:'#boletin=15480-13', sinDocs:true}); await espera(400);
   t('si los documentos fallan, el informe sigue completo y solo ese capítulo avisa con Reintentar', E.doc.querySelector('#informe').style.display !== 'none' && E.doc.querySelectorAll('#cuerpo section.cap').length === 11 && /No se pudieron leer los documentos/.test(E.doc.querySelector('#doc-cuerpo').textContent) && !!E.doc.querySelector('#btn-re-doc'));
@@ -166,7 +172,9 @@ function cargar(html, opts={}){
   t('PDF: extrae texto y detecta la materia del oficio', /^\[true, true/.test(rs));
   t('rechaza descargar desde dominios no oficiales', /^\[true, true, true/.test(rs));
   t('convierte fechas "12 Ago. 2026" a ISO', /^\[true, true, true, true/.test(rs));
-  t('informe de comisión: objetivo, expositores y votación en comisión', rs === '[true, true, true, true, true]', rs);
+  t('informe de comisión: objetivo, expositores y votación en comisión', /^\[true, true, true, true, true/.test(rs), rs);
+  t('OCR local: un PDF escaneado (imagen) se convierte en texto y se analiza como veto (2 observaciones, ley 18.010)', /^\[true, true, true, true, true, true/.test(rs), rs);
+  t('normalización OCR: "ARTiCULO", "ley No", "Republica" quedan corregidos', rs === '[true, true, true, true, true, true, true]', rs);
 
   console.log('== 6. índice, imprimir, ejemplos, dark ==');
   d.querySelector('#indice a[href="#vetos"]').click(); await espera(20);

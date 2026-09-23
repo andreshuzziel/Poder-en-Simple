@@ -170,15 +170,16 @@ function cargar(html){
   }
   console.log('== 3b. pestaña Documentos oficiales (leídos en memoria, en segundo plano) ==');
   await espera(150);
-  t('pestaña "Documentos oficiales" con conteo de leídos', !!fc.querySelector('.subtabs button[data-s=docs]') && /\(4\)/.test(fc.querySelector('#docs-n').textContent));
+  t('pestaña "Documentos oficiales" con conteo de leídos', !!fc.querySelector('.subtabs button[data-s=docs]') && /\(5\)/.test(fc.querySelector('#docs-n').textContent));
   fc.querySelector('.subtabs button[data-s=docs]').click(); await espera(20);
   const sd = fc.querySelector('#s-docs');
-  t('al abrirla se ven 4 tarjetas de documentos (veto primero)', sd.classList.contains('on') && sd.querySelectorAll('.doc-card').length === 4 && sd.querySelector('.doc-card').dataset.tipo === 'VETO');
+  t('al abrirla se ven 4 tarjetas de documentos (veto primero)', sd.classList.contains('on') && sd.querySelectorAll('.doc-card').length === 5 && sd.querySelector('.doc-card').dataset.tipo === 'VETO');
   t('veto: observaciones con artículo, qué propone y fundamento', /AL ARTÍCULO 32/.test(sd.textContent) && /Propone eliminar/.test(sd.textContent) && /anatocismo/i.test(sd.textContent));
   t('mensaje original: qué problema busca resolver', /problema busca resolver/i.test(sd.textContent));
   t('informe de comisión: quiénes expusieron y cómo votó la comisión', /expusieron/i.test(sd.textContent) && /votó la comisión/i.test(sd.textContent));
-  t('leyes citadas y botón al documento oficial, en pestaña nueva', sd.querySelectorAll('a.btn-oficial[href*="verDoc"][target=_blank][rel=noopener]').length === 4 && !!sd.querySelector('.doc-citas a[target=_blank]'));
+  t('leyes citadas y botón al documento oficial, en pestaña nueva', sd.querySelectorAll('a.btn-oficial[href*="verDoc"][target=_blank][rel=noopener]').length === 5 && !!sd.querySelector('.doc-citas a[target=_blank]'));
   t('aviso de que nada se guarda', /No se guarda ning[úu]n archivo/.test(sd.textContent));
+  t('documento escaneado: aviso de OCR y citas por confirmar', !!sd.querySelector('.ocr-aviso') && /88%/.test(sd.textContent) && !!sd.querySelector('.por-confirmar'));
   fc.querySelector('.subtabs button[data-s=resumen]').click(); await espera(10);
 
   console.log('== 4. volver y ficha de persona ==');

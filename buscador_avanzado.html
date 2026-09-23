@@ -174,6 +174,8 @@
   .doc-lista{margin:4px 0 4px 18px; padding:0; font-size:13.5px; line-height:1.5;} .doc-lista .n{color:var(--texto2);}
   .doc-obs{border-top:1px dashed var(--borde); padding:8px 0; font-size:14px;}
   .doc-citas{font-size:13px; margin-top:8px; line-height:1.7;}
+  .ocr-aviso{background:#fff7db; color:#5a4300; border:1px solid #f1d98a; border-radius:10px; padding:8px 10px; font-size:13px; margin-top:8px;} body.dark .ocr-aviso{background:#3a3010; color:#ffe9a8; border-color:#6b5a1e;}
+  .por-confirmar{display:inline-block; background:#f1d98a; color:#5a4300; border-radius:50%; width:16px; height:16px; font-size:11px; font-weight:900; text-align:center; line-height:16px;}
   .doc-link{font-weight:700; color:var(--azul);}
   .doc-kpis{margin-bottom:6px;}
   body.dark .filtros button, body.dark .subtabs button, body.dark .btn-volver, body.dark .btn-det, body.dark .filtro-voto button, body.dark #btn-escuchar{background:#1c2540; color:#e9edf7; border-color:#3a4870;}
@@ -461,7 +463,8 @@ function explicar(c, s, sv, ley){
 function parr(s, max){ s = String(s||''); if(!s) return ''; return `<p class="doc-p">${esc(max && s.length>max ? s.slice(0,max)+'…' : s)}</p>`; }
 function docCitas(citas){
   if(!citas || !citas.length) return '';
-  return `<div class="doc-citas"><b>📚 Leyes citadas en este documento:</b> ${citas.map(c => c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.cita)}</a>` : esc(c.cita)).join(' · ')}</div>`;
+  const pc = citas.some(c => c.por_confirmar);
+  return `<div class="doc-citas"><b>📚 Leyes citadas en este documento${pc?' (leídas por OCR, por confirmar)':''}:</b> ${citas.map(c => (c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.cita)}</a>` : esc(c.cita)) + (c.por_confirmar?' <span class="por-confirmar">?</span>':'')).join(' · ')}</div>`;
 }
 function docCard(doc){
   const a = doc.analisis || {};
@@ -469,7 +472,7 @@ function docCard(doc){
   if(doc.error){
     cuerpo = `<div class="nota-metodo">⚠️ No se pudo leer este documento en este momento. Puedes abrirlo en la fuente oficial.</div>`;
   }else if(doc.escaneado){
-    cuerpo = `<div class="nota-metodo">Este documento es una imagen escaneada: se puede abrir, pero no tiene texto que el sistema pueda leer.</div>`;
+    cuerpo = `<div class="nota-metodo">Este documento es una imagen escaneada y el reconocimiento de texto no logró leerlo${doc.ocr_error?' en este momento':''}. Se puede abrir en la fuente oficial.</div>`;
   }else if(doc.doc_tipo === 'VETO'){
     cuerpo += a.resumen ? `<div class="simple"><b>💬 En simple:</b> ${esc(a.resumen)}</div>` : '';
     cuerpo += a.fundamento ? `<details class="mas"><summary>Por qué el Presidente observó el proyecto (fundamento general)</summary><div>${parr(a.fundamento)}</div></details>` : '';
@@ -498,7 +501,8 @@ function docCard(doc){
   if(!cuerpo && doc.extracto) cuerpo = `<details class="mas"><summary>Primeras líneas del documento</summary><div>${parr(doc.extracto)}</div></details>`;
   return `<div class="doc-card" data-tipo="${esc(doc.doc_tipo)}">
     <div class="doc-cab"><span class="doc-tag">${esc(doc.etiqueta)}</span> <b>${esc(doc.titulo || doc.nombre_archivo || 'Documento oficial')}</b>${doc.fecha?` · ${esc(doc.fecha)}`:''}${doc.etapa?` · <span class="doc-etapa">${esc(doc.etapa)}</span>`:''}</div>
-    <div class="nota-metodo">${esc(doc.que_es||'')}${doc.caracteres?` · Leído en memoria: ${fmt(doc.caracteres)} caracteres (${esc((doc.formato||'').toUpperCase())}).`:''}</div>
+    <div class="nota-metodo">${esc(doc.que_es||'')}${doc.caracteres?` · Leído en memoria: ${fmt(doc.caracteres)} caracteres (${esc((doc.formato||'').toUpperCase())})${doc.fuente_texto && /senado/.test(doc.fuente_texto)?' desde la copia publicada por el Senado':''}.`:''}</div>
+    ${doc.ocr?`<div class="ocr-aviso">🔍 <b>Texto reconocido por OCR</b> (el documento era una imagen escaneada): se leyeron ${fmt(doc.ocr_paginas)} de ${fmt(doc.ocr_total_paginas)} páginas en este servidor, sin enviarlo a terceros. Confianza estimada ${Math.round((doc.ocr_confianza||0)*100)}%. Puede contener errores en números o nombres: ante cualquier duda, el documento oficial manda.</div>`:''}
     ${cuerpo}${docCitas(doc.citas)}
     <a class="btn-oficial" href="${esc(doc.url)}" target="_blank" rel="noopener">Abrir el documento oficial en camara.cl ↗</a>
   </div>`;

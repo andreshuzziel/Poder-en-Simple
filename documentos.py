@@ -14,6 +14,8 @@ Cuando alguien abre un proyecto o una votación, este módulo:
 
 Fuentes: https://www.camara.cl/legislacion/ProyectosDeLey/{informes,oficios,indicaciones,veto}.aspx
          https://www.camara.cl/verDoc.aspx?prmID=<id>&prmTIPO=<TIPO>
+         alternativa (mismos ids): https://www.senado.cl/appsenado/index.php?mo=tramitacion&ac=getDocto&iddocto=<id>&tipodoc=<info|oficio|indicacion|veto|mensaje_mocion>
+OCR: si un PDF es imagen, se reconoce localmente con RapidOCR (onnxruntime) + PyMuPDF, máx. OCR_MAX_PAGINAS páginas.
 """
 import re, io, zipfile, struct, html as html_mod
 from concurrent.futures import ThreadPoolExecutor
@@ -188,6 +190,67 @@ def extraer_texto(raw, content_type=''):
     return '', 'desconocido'
 
 
+SEN_DOC = 'https://www.senado.cl/appsenado/index.php?mo=tramitacion&ac=getDocto&iddocto={id}&tipodoc={tipo}'
+SEN_TIPO = {'INFORMEPLEY': 'info', 'OFICIOPLEY': 'oficio', 'INDICACIONPLEY': 'indicacion', 'VETO': 'veto', 'INICIATIVA': 'mensaje_mocion', 'COMPARADO': 'compa'}
+OCR_MAX_PAGINAS = 12      # páginas escaneadas que se reconocen por consulta (≈ 4 s cada una)
+OCR_DPI = 170
+_OCR = {'motor': None}
+
+
+def url_alternativa(doc):
+    """Misma pieza publicada por el Senado (mismos identificadores). Sirve cuando la copia de la Cámara es imagen o falla."""
+    tipo = SEN_TIPO.get(doc.get('doc_tipo', ''))
+    if tipo and doc.get('doc_id'):
+        return SEN_DOC.format(id=doc['doc_id'], tipo=tipo)
+    return ''
+
+
+def _motor_ocr():
+    if _OCR['motor'] is None:
+        from rapidocr_onnxruntime import RapidOCR
+        _OCR['motor'] = RapidOCR()
+    return _OCR['motor']
+
+
+def _normaliza_ocr(txt):
+    """Corrige errores típicos del OCR en documentos legales para que los analizadores los entiendan."""
+    reglas = [
+        (r'ART[iíÍI1l][CG]ULO', 'ARTÍCULO'), (r'\bart[iíI1l]culo', 'artículo'), (r'\bArt[iíI1l]culo', 'Artículo'),
+        (r'FUNDAMENTOS?DE ?LAS ?OBSERVACIONES', 'FUNDAMENTO DE LAS OBSERVACIONES'), (r'LAS ?OBSERVACIONES', 'LAS OBSERVACIONES'),
+        (r'\bN[o°º]\s*(\d)', r'N° \1'), (r'\bley N[o°º]', 'ley N°'), (r'Republica', 'República'), (r'Codigo', 'Código'),
+        (r'Constitucion', 'Constitución'), (r'Comision', 'Comisión'), (r'votacion', 'votación'), (r'Votacion', 'Votación'),
+        (r'indicacion', 'indicación'), (r'observacion', 'observación'), (r'Observacion', 'Observación'),
+    ]
+    for a, b in reglas:
+        txt = re.sub(a, b, txt)
+    return txt
+
+
+def ocr_pdf(raw, max_paginas=OCR_MAX_PAGINAS):
+    """Reconoce el texto de un PDF escaneado (imagen) página por página, en memoria. Devuelve (texto, info)."""
+    import pymupdf as fitz, numpy as np
+    motor = _motor_ocr()
+    d = fitz.open(stream=raw, filetype='pdf')
+    total = d.page_count
+    partes, confs = [], []
+    for i, pg in enumerate(d):
+        if i >= max_paginas:
+            break
+        pix = pg.get_pixmap(dpi=OCR_DPI, colorspace=fitz.csGRAY)
+        arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width)
+        res, _ = motor(arr)
+        lineas = []
+        for r in (res or []):
+            try:
+                lineas.append(str(r[1])); confs.append(float(r[2]))
+            except Exception:
+                pass
+        partes.append('\n'.join(lineas))
+    txt = _normaliza_ocr('\n'.join(partes))
+    conf = round(sum(confs) / len(confs), 3) if confs else 0.0
+    return txt, {'ocr': True, 'ocr_paginas': min(total, max_paginas), 'ocr_total_paginas': total, 'ocr_confianza': conf}
+
+
 def descargar_texto(url):
     """Descarga en RAM un documento oficial (solo dominios oficiales) y devuelve su texto."""
     host = re.sub(r'^https?://([^/]+).*$', r'\1', url)
@@ -201,8 +264,52 @@ def descargar_texto(url):
         nombre = html_mod.unescape(m.group(1)).strip()
     txt = re.sub(r'[ \t\xa0]+', ' ', txt)
     txt = re.sub(r'\n\s*\n+', '\n', txt).strip()
+    escaneado = fmt == 'pdf' and len(txt) < max(200, 25 * _n_paginas_pdf(raw))
     return {'texto': txt[:MAX_TXT], 'formato': fmt, 'bytes': len(raw), 'nombre': nombre,
-            'caracteres': len(txt), 'escaneado': fmt == 'pdf' and len(txt) < 200 and len(raw) > 20000}
+            'caracteres': len(txt), 'escaneado': escaneado, '_raw': raw if escaneado else None}
+
+
+def _n_paginas_pdf(raw):
+    try:
+        import pypdf
+        return len(pypdf.PdfReader(io.BytesIO(raw)).pages)
+    except Exception:
+        return 1
+
+
+def obtener_texto(doc):
+    """Texto de un documento con tres intentos, en orden:
+       1) copia de la Cámara; 2) si es imagen o falla, la misma pieza en el Senado (suele tener texto);
+       3) si sigue siendo imagen, OCR local (reconocimiento óptico) limitado a las primeras páginas."""
+    intentos = []
+    info = None
+    try:
+        info = descargar_texto(doc['url']); info['fuente_texto'] = 'camara'
+    except Exception as e:
+        intentos.append(f'camara: {type(e).__name__}')
+    alt = url_alternativa(doc)
+    if alt and (info is None or info.get('escaneado') or info['caracteres'] < 200):
+        try:
+            info2 = descargar_texto(alt); info2['fuente_texto'] = 'senado'; info2['url_alternativa'] = alt
+            if info is None or info2['caracteres'] > max(200, info['caracteres']):
+                if info is not None:
+                    info2['_raw_camara'] = info.get('_raw')
+                info = info2
+        except Exception as e:
+            intentos.append(f'senado: {type(e).__name__}')
+    if info is None:
+        raise RuntimeError('; '.join(intentos) or 'sin texto')
+    if info.get('escaneado') and info.get('_raw'):
+        try:
+            txt, oi = ocr_pdf(info['_raw'])
+            if len(txt) > 100:
+                txt = re.sub(r'[ \t\xa0]+', ' ', txt); txt = re.sub(r'\n\s*\n+', '\n', txt).strip()
+                info.update(oi); info['texto'] = txt[:MAX_TXT]; info['caracteres'] = len(txt); info['fuente_texto'] += '+ocr'
+        except Exception as e:
+            info['ocr_error'] = f'{type(e).__name__}: {str(e)[:80]}'
+    info.pop('_raw', None); info.pop('_raw_camara', None)
+    info['intentos'] = intentos
+    return info
 
 
 # ---------------------------------------------------------------- 3. INFORMACIÓN EN SIMPLE
@@ -410,7 +517,7 @@ def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True):
 
     def uno(d):
         try:
-            info = descargar_texto(d['url'])
+            info = obtener_texto(d)
             an = analizar(d, info) if info['texto'] else {}
             citas = []
             if con_citas and info['texto']:
@@ -420,8 +527,14 @@ def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True):
                     citas = ctx.get('citas', [])[:12]
                 except Exception:
                     citas = []
+            if info.get('ocr'):
+                for c in citas:
+                    c['por_confirmar'] = True
             r = dict(d); r.update({'formato': info['formato'], 'bytes': info['bytes'], 'caracteres': info['caracteres'],
-                                   'nombre_archivo': info['nombre'], 'escaneado': info['escaneado'],
+                                   'nombre_archivo': info['nombre'], 'escaneado': info['escaneado'] and not info.get('ocr'),
+                                   'fuente_texto': info.get('fuente_texto', ''), 'url_alternativa': info.get('url_alternativa', ''),
+                                   'ocr': bool(info.get('ocr')), 'ocr_paginas': info.get('ocr_paginas', 0), 'ocr_total_paginas': info.get('ocr_total_paginas', 0),
+                                   'ocr_confianza': info.get('ocr_confianza', 0), 'ocr_error': info.get('ocr_error', ''),
                                    'analisis': an, 'citas': citas,
                                    'extracto': re.sub(r'\s+', ' ', info['texto'][:1200])})
             return r
@@ -437,7 +550,7 @@ def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True):
     n_ok = sum(1 for d in salida if not d.get('error'))
     return {'boletin': bol, 'pid': pid, 'fecha_ref': fecha_ref, 'total_documentos': len(docs), 'analizados': n_ok,
             'documentos': salida, 'otros': resto, 'errores': errores, 'generado': date.today().isoformat(),
-            'nota': 'Documentos descargados en el momento desde camara.cl, leídos en memoria y descartados al terminar. No se guarda ningún archivo.'}
+            'nota': 'Documentos descargados en el momento desde camara.cl (o su copia en senado.cl), leídos en memoria y descartados al terminar. Si un documento es una imagen escaneada, se reconoce su texto con OCR local en el mismo servidor, sin enviarlo a terceros. No se guarda ningún archivo.'}
 
 
 if __name__ == '__main__':

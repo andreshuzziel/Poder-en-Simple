@@ -145,3 +145,14 @@ código.
   test_documentos_fixture.json (usada por test_informe_jsdom.js y test_buscador_jsdom.js).
 - Límites: PDFs escaneados no tienen texto (se avisa); el Senado no publica listado de documentos por
   proyecto en sus datos abiertos, por eso se usan los de la Cámara (que incluye informes del Senado).
+
+=== OCR DE DOCUMENTOS ESCANEADOS (documentos.py) ===
+- Orden de lectura de cada documento (documentos.obtener_texto): 1) copia de la Cámara; 2) si es imagen o
+  falla, la misma pieza en el Senado (mismos ids: senado.cl/appsenado/index.php?mo=tramitacion&ac=getDocto&
+  iddocto=<id>&tipodoc=info|oficio|indicacion|veto|mensaje_mocion); 3) si sigue siendo imagen, OCR LOCAL.
+- OCR: RapidOCR (onnxruntime, modelos incluidos, sin red) + PyMuPDF para rasterizar. Máx. OCR_MAX_PAGINAS=12
+  páginas por documento (~4 s/página), OCR_DPI=170. Todo en RAM. Texto normalizado (_normaliza_ocr) para
+  errores típicos (ARTiCULO, ley No, Republica…). En pantalla: aviso "Texto reconocido por OCR", páginas
+  leídas, confianza; citas de leyes desde OCR marcadas "por confirmar".
+- Dependencias (se pierden si el entorno se reinicia): pip install pypdf olefile pymupdf rapidocr-onnxruntime
+- Prueba sin red (incluye OCR sintético): python3 test_documentos.py → [true x7]

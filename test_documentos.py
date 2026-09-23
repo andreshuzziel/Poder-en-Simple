@@ -40,4 +40,28 @@ inf = ('INFORME DE LA COMISIÓN\nI. OBJETIVO\nMejorar las pensiones de todos.\nI
 a = D.analizar_informe(inf)
 ok5 = a.get('objetivo', '').startswith('Mejorar') and any('Juan Pérez' in x for x in a.get('expositores', [])) and len(a.get('votaciones_comision', [])) == 1
 
-print(json.dumps([ok1, ok2, ok3, ok4, ok5]))
+# 6. OCR local sobre un PDF escaneado sintético (3 páginas imagen)
+try:
+    import pymupdf as fitz
+    src = fitz.open()
+    for s in ["FORMULA OBSERVACIONES AL PROYECTO.\nFUNDAMENTO DE LAS OBSERVACIONES\nAl artículo 32: sobre el plazo. Es muy corto.",
+              "LAS OBSERVACIONES\nAL ARTÍCULO 32\nPara suprimirlo.\nAL ARTÍCULO 39\nPara reemplazarlo por otro.",
+              "Modifica el artículo 9 de la ley N° 18.010.\nDios guarde a V.E.,\nNOMBRE PRESIDENTE\nPresidente de la República"]:
+        pg = src.new_page(width=595, height=842); pg.insert_text((50, 80), s, fontsize=13, fontname='helv')
+    scan = fitz.open()
+    for pg in src:
+        img = pg.get_pixmap(dpi=120).tobytes('png'); q = scan.new_page(width=595, height=842); q.insert_image(q.rect, stream=img)
+    raw = scan.tobytes()
+    plano, fmt = D.extraer_texto(raw)
+    txt, oi = D.ocr_pdf(raw)
+    v = D.analizar_veto(txt)
+    import buscador as B
+    citas = [c['cita'] for c in B.citas_en_texto(txt)]
+    ok6 = (fmt == 'pdf' and len(plano) < 50 and oi['ocr'] and oi['ocr_paginas'] == 3 and oi['ocr_confianza'] > 0.6
+           and len(v.get('observaciones', [])) == 2 and 'Ley N° 18.010' in citas)
+except Exception as e:
+    ok6 = False
+# 7. normalización de errores típicos de OCR
+n = D._normaliza_ocr('AL ARTiCULO 32\nModifica el articulo 9 de la ley No 18.010. Presidente de la Republica')
+ok7 = 'AL ARTÍCULO 32' in n and 'artículo 9 de la ley N° 18.010' in n and 'República' in n
+print(json.dumps([ok1, ok2, ok3, ok4, ok5, ok6, ok7]))
