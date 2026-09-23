@@ -14,7 +14,7 @@ jobs:
         with: { python-version: '3.12' }
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: pip install requests openpyxl
+      - run: pip install requests openpyxl edge-tts
       - run: mkdir -p /tmp/jst && cd /tmp/jst && npm init -y >/dev/null && npm i jsdom >/dev/null
       - run: ./publicar.sh
         env: { GIT_NAME: github-actions, GIT_EMAIL: actions@github.com }

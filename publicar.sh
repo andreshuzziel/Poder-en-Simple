@@ -6,6 +6,7 @@ cd "$(dirname "$0")"
 echo "== 1/4 Datos =="
 python3 actualizar_datos.py
 echo "== 2/4 Páginas =="
+python3 gen_audio_resumen.py || true
 python3 gen_dashboard.py
 python3 gen_vivo.py
 python3 gen_excel.py

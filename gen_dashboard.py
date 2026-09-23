@@ -302,7 +302,7 @@ if os.path.exists(AUDIO):
     html = html.replace('__AUDIO_FECHA__', m.strftime('%Y-%m-%d'))
     html = html.replace('__AUDIO_NOTA__',
         f'🎙️ Voz sintética generada el <b>{m.day} de {MESES_ES[m.month]} de {m.year}</b> a partir de los datos oficiales. '
-        'Se renueva cada semana: al crear el audio nuevo, el anterior se elimina y reemplaza automáticamente.')
+        'Se renueva solo cada semana con los datos nuevos; el audio anterior se elimina y reemplaza automáticamente.')
 else:
     html = _re.sub(r'<div class="card" id="card-audio"[\s\S]*?</div>\s*', '', html, count=1)
     html = html.replace('__AUDIO_FECHA__','').replace('__AUDIO_NOTA__','')
