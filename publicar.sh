@@ -11,7 +11,6 @@ python3 gen_vivo.py
 python3 gen_excel.py
 python3 gen_calendario.py && python3 gen_calendario_page.py
 python3 gen_buscador_page.py
-python3 gen_informe_page.py
 python3 gen_proxima_page.py
 python3 gen_elecciones_page.py
 echo "== 3/4 Pruebas =="

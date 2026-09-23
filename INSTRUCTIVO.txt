@@ -197,3 +197,12 @@ Cambiar la hora: editar la línea "cron" del workflow (está en UTC; Chile = UTC
   Todo vive solo en RAM (caché 15 min). Al cerrar la pestaña o cambiar de proyecto, la página envía
   /api/documentos/cerrar (sendBeacon POST o GET) y el servidor borra de la memoria todo lo de ese proyecto.
   Límites por documento: 400.000 caracteres, OCR máx. 12 páginas. Prueba: test_informe_jsdom.js §5d.
+
+§11 EL INFORME COMPLETO VIVE DENTRO DEL BUSCADOR AVANZADO (2026-09-23)
+  Se eliminó la sección/página aparte (informe_proyecto.html, template_informe.html, gen_informe_page.py,
+  test_informe_jsdom.js). Ahora la ficha de cada proyecto en buscador_avanzado.html tiene 7 pestañas:
+  Resumen · Votaciones Cámara · Votaciones Senado · Tramitación · INFORME COMPLETO · Documentos oficiales · Fuentes.
+  "Informe completo" llama /api/informe (voto nominal de TODAS las votaciones, indicaciones, vetos, urgencias,
+  leyes citadas) y agrega el botón Imprimir/guardar PDF. /informe redirige al buscador (servidor y _redirects).
+  Documentos: dos tandas (8 + resto) y borrado de RAM al cerrar, cambiar de proyecto o volver a la lista.
+  Pruebas: test_buscador_jsdom.js §3b/§3c (usa test_informe_fixture.json y test_documentos_fixture.json).

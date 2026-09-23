@@ -18,6 +18,7 @@ const BUSCAR = {
   ]
 };
 const DOCS = JSON.parse(fs.readFileSync(__dirname + '/test_documentos_fixture.json', 'utf8'));
+const INFORME = JSON.parse(fs.readFileSync(__dirname + '/test_informe_fixture.json', 'utf8'));
 const dips = {}; for (let i = 1; i <= 155; i++) dips[String(i)] = {n: 'Diputad@ ' + i, g: ['UDI','PS','FA','RN','PC'][i % 5], p: 'X', dist: String((i % 28) + 1)};
 const votosCam = {}; for (let i = 1; i <= 150; i++) votosCam[String(i)] = i <= 100 ? 'S' : i <= 140 ? 'N' : 'A';
 const FICHA = {
@@ -53,7 +54,9 @@ function cargar(html){
         const u = String(url);
         let body = {};
         if (u.startsWith('/api/contexto')) body = {citas:[{cita:'Ley N° 21.325', titulo:'LEY DE MIGRACIÓN Y EXTRANJERÍA', tipo:'Ley', numero:'21325', publicacion:'2021-04-20', organismo:'MINISTERIO DEL INTERIOR', n_articulos:184, url:'https://www.bcn.cl/leychile/navegar?idNorma=1158549', articulos:[{n:'24', texto:'Artículo 24.- Forma de ingreso y egreso. La entrada de personas al territorio nacional…', derogado:false, version:'2021-04-20'}]}]};
+        else if (u.startsWith('/api/documentos/cerrar')) { w.__cerrados = (w.__cerrados||0) + 1; body = {eliminados:1}; }
         else if (u.startsWith('/api/documentos')) body = DOCS;
+        else if (u.startsWith('/api/informe')) body = INFORME;
         else if (u.startsWith('/api/buscar')) body = BUSCAR;
         else if (u.includes('tipo=proyecto')) body = FICHA;
         else if (u.includes('tipo=diputado')) body = PERSONA;
@@ -116,7 +119,7 @@ function cargar(html){
   t('boletín, ley y etapa como etiquetas', /Boletín 15480-13/.test(fc.textContent) && /Ley 21\.735/.test(fc.textContent) && /Tramitación terminada/.test(fc.textContent));
   t('explicación en simple', /En simple/.test(d.querySelector('#explica').textContent) && /Ya es ley/.test(d.querySelector('#explica').textContent));
   t('KPIs: ingreso, quién propuso, votaciones Cámara y Senado', fc.querySelectorAll('.kpi').length >= 4 && /Votaciones en la Cámara/.test(fc.textContent) && /Votaciones en el Senado/.test(fc.textContent));
-  t('6 pestañas (resumen, cámara, senado, tramitación, documentos, fuentes)', fc.querySelectorAll('.subtabs button').length === 6);
+  t('7 pestañas (resumen, cámara, senado, tramitación, informe completo, documentos, fuentes)', fc.querySelectorAll('.subtabs button').length === 7);
   t('resumen: quién lo presentó (Gobierno) y ministerio', /Presidente de la República/.test(d.querySelector('#s-resumen').textContent) && /Hacienda/.test(d.querySelector('#s-resumen').textContent));
   // cámara
   fc.querySelector('.subtabs [data-s="camara"]').click();
@@ -180,6 +183,26 @@ function cargar(html){
   t('leyes citadas y botón al documento oficial, en pestaña nueva', sd.querySelectorAll('a.btn-oficial[href*="verDoc"][target=_blank][rel=noopener]').length === 5 && !!sd.querySelector('.doc-citas a[target=_blank]'));
   t('aviso de que nada se guarda', /No se guarda ning[úu]n archivo/.test(sd.textContent));
   t('documento escaneado: aviso de OCR y citas por confirmar', !!sd.querySelector('.ocr-aviso') && /88%/.test(sd.textContent) && !!sd.querySelector('.por-confirmar'));
+  t('ya NO existe una página aparte de informe: sin enlaces a informe_proyecto', !d.querySelector('a[href*="informe_proyecto"]'));
+
+  console.log('== 3c. pestaña Informe completo (dentro de la ficha del proyecto) ==');
+  const bi = fc.querySelector('.subtabs button[data-s=informe]');
+  t('pestaña "Informe completo" existe y muestra el total de votaciones', !!bi && /votaciones/.test(fc.querySelector('#inf-n').textContent));
+  bi.click(); await espera(20);
+  const si = fc.querySelector('#s-informe');
+  t('se ve al hacer clic', si.classList.contains('on'));
+  t('6 secciones numeradas con índice', si.querySelectorAll('section.cap').length === 6 && si.querySelectorAll('.inf-indice a').length === 6);
+  t('barra de progreso de la tramitación', !!si.querySelector('.progreso') && si.querySelectorAll('.progreso > span').length === 6);
+  t('KPIs: votaciones Cámara, Senado, indicaciones, vetos, urgencias, pasos', si.querySelectorAll('#inf-res .kpi').length === 6);
+  t('todas las votaciones de la Cámara agrupadas por trámite, plegadas', si.querySelectorAll('#inf-cam h4').length >= 1 && si.querySelectorAll('#inf-cam .vot').length === (INFORME.capitulos_camara||[]).reduce((s,c)=>s+c.votaciones.length,0) && [...si.querySelectorAll('#inf-cam .vot-body')].every(b => b.style.display === 'none'));
+  const v1 = si.querySelector('#inf-cam .vot .cab'); v1.click(); await espera(10);
+  t('al tocar una votación se despliega y ofrece el voto por diputad@', v1.parentElement.querySelector('.vot-body').style.display !== 'none' && !!v1.parentElement.querySelector('.btn-det'));
+  v1.parentElement.querySelector('.btn-det').click(); await espera(10);
+  t('el voto nominal se pinta dentro del informe', v1.parentElement.querySelectorAll('.det .fila, .det tr, .det li, .det .nom').length > 0 || v1.parentElement.querySelector('.det').textContent.length > 50);
+  t('secciones de vetos, urgencias y leyes citadas presentes', !!si.querySelector('#inf-veto') && !!si.querySelector('#inf-urg') && !!si.querySelector('#inf-normas'));
+  t('botón imprimir / guardar PDF visible en la ficha', fc.querySelector('#btn-imprimir') && fc.querySelector('#btn-imprimir').style.display !== 'none');
+  t('botón "Informe completo" de la cabecera lleva a la pestaña (no a otra página)', !!fc.querySelector('#btn-ir-informe') && fc.querySelector('#btn-ir-informe').tagName === 'BUTTON');
+  t('aviso ciudadano: nada se guarda, se elimina al cerrar', /Nada se guarda/.test(si.textContent) && /se eliminan de la memoria del servidor/.test(fc.querySelector('#s-docs').textContent));
   fc.querySelector('.subtabs button[data-s=resumen]').click(); await espera(10);
 
   console.log('== 4. volver y ficha de persona ==');
@@ -198,7 +221,7 @@ function cargar(html){
 
   console.log('== 5. ley publicada abre la ficha del proyecto (por su boletín) ==');
   d.querySelector('#btn-volver').click(); d.querySelectorAll('#lista .item')[1].click(); await espera(200);
-  t('ley 21.735 → ficha completa del boletín 15480-13 con votaciones', /Boletín 15480-13/.test(fc.textContent) && fc.querySelectorAll('.subtabs button').length === 6);
+  t('ley 21.735 → ficha completa del boletín 15480-13 con votaciones', /Boletín 15480-13/.test(fc.textContent) && fc.querySelectorAll('.subtabs button').length === 7);
 
   console.log('== 6. modo oscuro y arranque por URL ==');
   d.querySelector('#dark-toggle').click();

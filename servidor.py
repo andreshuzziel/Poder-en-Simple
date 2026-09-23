@@ -923,15 +923,8 @@ class Handler(BaseHTTPRequestHandler):
             pid = qs.get('pid', [''])[0].strip(); bol = qs.get('boletin', [''])[0].strip()
             n = olvidar(f'docs:{pid}:{bol}:') if pid else 0
             self._json({'eliminados': n, 'mensaje': 'Documentos eliminados de la memoria del servidor.'})
-        elif p.path in ('/informe', '/informe_proyecto.html'):
-            try:
-                html = open(_p('informe_proyecto.html'), 'rb').read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Cache-Control', 'no-store')
-                self.end_headers(); self.wfile.write(html)
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
+        elif p.path in ('/informe', '/informe_proyecto.html'):   # el informe ahora vive dentro del Buscador avanzado
+            self.send_response(302); self.send_header('Location', '/buscador_avanzado.html' + (('?' + p.query) if p.query else '')); self.end_headers()
         elif p.path == '/api/contexto':        # normas/artículos citados en un texto votado → título y texto vigente (LeyChile, en vivo)
             qs = urllib.parse.parse_qs(p.query)
             try:

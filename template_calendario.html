@@ -228,7 +228,7 @@
     <h1>¿Qué se votó <span class="simple">y cuándo?</span> 🗓️</h1>
     <p class="sub">Un calendario con todas las leyes que votó la <b>Cámara de Diputadas y Diputados</b> en 2026. Pincha un día para ver qué se votó, y luego pincha una ley para abrir su <b>ficha completa</b>: cómo votó cada diputad@ — a favor, en contra, abstención o ausente — explicado simple.</p>
     <div class="badges" id="hero-badges"></div>
-    <a class="volver" href="index.html">← Volver al tablero El Poder en Simple</a> &nbsp;·&nbsp; <a href="buscador_avanzado.html" style="color:#ffd75e; font-weight:700; text-decoration:none; font-size:14px;">🔎 Buscador avanzado</a> &nbsp;·&nbsp; <a href="informe_proyecto.html" style="color:#ffd75e; font-weight:700; text-decoration:none; font-size:14px;">📑 Informe de proyecto</a>
+    <a class="volver" href="index.html">← Volver al tablero El Poder en Simple</a> &nbsp;·&nbsp; <a href="buscador_avanzado.html" style="color:#ffd75e; font-weight:700; text-decoration:none; font-size:14px;">🔎 Buscador avanzado</a>
   </div>
 </header>
 
@@ -640,7 +640,6 @@ function renderDetalle(v){
           <dl class="obs">${filas.map(([k,val]) => `<dt>${k}</dt><dd>${val}</dd>`).join('')}</dl>
           ${!o.articulo && v.que ? `<div>${v.que}</div>` : ''}
           <div id="obs-vivo" class="obs-vivo"><span class="cargando"></span> Consultando en este momento qué pasó después con este proyecto (Senado, ley publicada)…</div>
-          <a class="btn-oficial btn-ficha" href="informe_proyecto.html#boletin=${encodeURIComponent(v.boletin||'')}">📑 Informe completo del proyecto (todas las votaciones, vetos, leyes citadas)</a>
           <a class="btn-oficial btn-ficha" href="buscador_avanzado.html#q=${encodeURIComponent(v.boletin||'')}&tipo=proyecto&ref=${encodeURIComponent(v.boletin||'')}">🔎 Ver la ficha completa: todas las votaciones de la Cámara y del Senado, autores y tramitación</a>
         </div>`
       : (v.quorum ? `<div class="q">🎯 <b>Quórum requerido:</b> ${v.quorum}.</div>` : '');

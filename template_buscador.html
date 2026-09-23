@@ -109,6 +109,17 @@
   .kpi .num{font-size:22px; font-weight:800; color:var(--azul);}
   .kpi .lbl{font-size:12px; color:var(--texto2); margin-top:2px;}
   .subtabs{display:flex; flex-wrap:wrap; gap:6px; margin-top:16px;}
+  .btn-informe.sec{background:#fff; color:var(--azul) !important; border:1px solid var(--azul);} body.dark .btn-informe.sec{background:transparent; color:#ffd75e !important; border-color:#ffd75e;}
+  .cap{background:var(--tarjeta,#fff); border:1px solid var(--borde); border-radius:14px; padding:16px 18px; margin-top:14px;}
+  .cap h3{font-size:17px; color:var(--azul); display:flex; align-items:center; gap:8px; margin-bottom:6px;} .cap h3 .num{background:var(--azul); color:#fff; border-radius:8px; padding:1px 8px; font-size:13px;}
+  .cap h4{font-size:15px; margin:14px 0 4px;}
+  .cap.vacio{opacity:.85;}
+  .tabla{width:100%; border-collapse:collapse; font-size:13.5px; margin-top:8px;} .tabla th, .tabla td{padding:7px 8px; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top;} .tabla th{background:#eef2fd; color:var(--azul);} body.dark .tabla th{background:#25314f; color:#dfe6f5;}
+  .progreso{display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap;} .progreso span{flex:1; min-width:110px; text-align:center; padding:6px 8px; border-radius:8px; font-size:12px; font-weight:700; background:#eef2fd; color:var(--texto2);}
+  .progreso span.done{background:var(--verde,#1f8f4e); color:#fff;} .progreso span.now{background:#ffd75e; color:#3d2e00;} body.dark .progreso span{background:#25314f; color:#c9d3ea;}
+  .inf-indice{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;} .inf-indice a{font-size:12px; font-weight:700; text-decoration:none; background:#eef2fd; color:var(--azul); border-radius:999px; padding:4px 10px;} body.dark .inf-indice a{background:#25314f; color:#dfe6f5;}
+  .cap .simple{margin-top:6px;}
+  @media print{ .subtabs, .filtros, .top, nav, #form, .ejemplos, #btn-volver, #btn-escuchar, .btn-informe, .btn-det, .plegar-todo{display:none !important;} .sub{display:block !important;} .cap{break-inside:avoid;} }
   .subtabs button{border:1px solid var(--borde); background:#fff; color:var(--texto2); font-weight:700; font-size:12.5px; padding:6px 11px; border-radius:9px; cursor:pointer;}
   .subtabs button.on{background:var(--azul); color:#fff; border-color:var(--azul);}
   .sub{display:none;} .sub.on{display:block;}
@@ -221,7 +232,6 @@
 <nav class="tabs"><div class="cont">
   <a href="index.html">🏠 Inicio</a>
   <a href="buscador_avanzado.html" class="on">🔎 Buscador avanzado</a>
-  <a href="informe_proyecto.html">📑 Informe de proyecto</a>
   <a href="elecciones_chile.html">🗳️ Elecciones</a>
   <a href="calendario_votaciones.html">🗓️ Calendario</a>
   <a href="proxima_eleccion.html">🔜 Próxima elección</a>
@@ -327,7 +337,7 @@ $('#filtros').addEventListener('click', e => {
 });
 $('#form').addEventListener('submit', e => { e.preventDefault(); buscar($('#q').value); });
 $$('.ejemplos button').forEach(b => b.addEventListener('click', () => buscar(b.dataset.q)));
-$('#btn-volver').addEventListener('click', () => { mostrarLista(); irA('resultados'); });
+$('#btn-volver').addEventListener('click', () => { cerrarDocumentos(); mostrarLista(); irA('resultados'); });
 function mostrarLista(){ $('#ficha').style.display = 'none'; $('#resultados').style.display = ''; }
 function mostrarFicha(){ $('#resultados').style.display = 'none'; $('#ficha').style.display = 'block'; }
 
@@ -350,7 +360,7 @@ async function abrir(r){
     if(d.error) throw new Error(d.error);
     fc.innerHTML = (tipo==='proyecto') ? fichaProyecto(d, r) : fichaPersona(d, r);
     activarSubtabs(); activarVotos(d); marcarGlosario(fc);
-    if(tipo==='proyecto') cargarDocumentos(d);
+    if(tipo==='proyecto'){ cargarDocumentos(d); cargarInforme(d); const bi = $('#btn-ir-informe'); if(bi) bi.addEventListener('click', () => { const b = $$('.subtabs button').find(x => x.dataset.s === 'informe'); if(b) b.click(); }); }
     try{ history.replaceState(null, '', `#q=${encodeURIComponent(ultimaQ)}&tipo=${tipo}&ref=${encodeURIComponent(ref)}`); }catch(e){}
   }catch(e){
     fc.innerHTML = `<h2 class="tit">${esc(r.titulo)}</h2><div class="aviso">⚠️ No fue posible descargar la ficha en este momento (${esc(e.message)}). ${r.url?`Puedes verla en la fuente oficial: <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>`:''}</div>`;
@@ -377,7 +387,7 @@ function fichaProyecto(d, r){
   const ultimaCam = c && c.votaciones.length ? c.votaciones[c.votaciones.length-1] : null;
   const ley = d.ley;
   let html = `<h2 class="tit">📜 ${esc(titulo)}</h2>
-    <div class="ficha-head"><span class="tag congreso">Boletín ${esc(d.boletin)}</span>${ley?`<span class="tag gobierno">Ley ${esc(ley.numero)}</span>`:''}<span class="tag estado">${esc(etapa)}</span>${s&&s.urgencia&&!/sin/i.test(s.urgencia)?`<span class="tag estado">Urgencia: ${esc(s.urgencia)}</span>`:''}<button id="btn-escuchar" type="button">🔊 Escuchar</button><a class="btn-informe" href="informe_proyecto.html#boletin=${esc(d.boletin)}">📑 Informe completo (todas las votaciones, vetos, leyes citadas)</a></div>
+    <div class="ficha-head"><span class="tag congreso">Boletín ${esc(d.boletin)}</span>${ley?`<span class="tag gobierno">Ley ${esc(ley.numero)}</span>`:''}<span class="tag estado">${esc(etapa)}</span>${s&&s.urgencia&&!/sin/i.test(s.urgencia)?`<span class="tag estado">Urgencia: ${esc(s.urgencia)}</span>`:''}<button id="btn-escuchar" type="button">🔊 Escuchar</button><button type="button" class="btn-informe" id="btn-ir-informe">📑 Informe completo</button> <button type="button" class="btn-informe sec" id="btn-imprimir" style="display:none">🖨️ Imprimir / guardar PDF</button></div>
     <p class="lead" id="explica">${explicar(c, s, sv, ley)}</p>
     <div class="kpis">
       <div class="kpi"><div class="num">${esc(ingreso||'—')}</div><div class="lbl">Fecha de ingreso</div></div>
@@ -391,6 +401,7 @@ function fichaProyecto(d, r){
       <button data-s="camara">🏛️ Votaciones Cámara (${nCam})</button>
       <button data-s="senado">🏛️ Votaciones Senado (${nSen})</button>
       <button data-s="tramite">🧭 Tramitación paso a paso</button>
+      <button data-s="informe">📑 Informe completo <span id="inf-n"></span></button>
       <button data-s="docs">📄 Documentos oficiales <span id="docs-n"></span></button>
       <button data-s="fuentes">🔗 Fuentes oficiales</button>
     </div>`;
@@ -434,6 +445,7 @@ function fichaProyecto(d, r){
   const tr = (s && s.tramites) || [];
   html += `<div class="sub" id="s-tramite">${tr.length ? `<ul class="timeline mt">${tr.slice().reverse().slice(0,80).map(t => `<li class="${/senado/i.test(t.camara)?'sen':''}${/ley|promulg|publicad/i.test(t.que)?' ley':''}"><div class="f">${esc(t.fecha)} · ${esc(t.camara)} · ${esc(t.etapa)}</div><div class="q">${esc(t.que)}</div>${t.exp?`<div class="simple">💬 <b>En simple:</b> ${esc(t.exp)}</div>`:''}</li>`).join('')}</ul>${tr.length>80?`<p class="nota-metodo">Se muestran los últimos 80 de ${tr.length} pasos; el historial completo está en el sitio del Senado.</p>`:''}` : '<div class="card mt">No hay historial de tramitación disponible en este momento.</div>'}</div>`;
   // fuentes
+  html += `<div class="sub" id="s-informe"><div id="inf-cuerpo"><div class="nota-metodo mt"><span class="cargando"></span> Armando el informe completo: se descarga el voto de cada diputad@ en TODAS las votaciones, los vetos, las urgencias y las leyes citadas… (10 a 40 segundos; el resto de la ficha ya está disponible)</div></div></div>`;
   html += `<div class="sub" id="s-docs"><p class="nota-metodo mt">El sistema descarga y lee en memoria los informes de comisión, oficios, boletines de indicaciones, el mensaje original y el oficio de veto que la Cámara publica para este proyecto, y resume aquí lo que aportan. Nada se guarda.</p><div id="doc-cuerpo"><div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales… (15 a 60 segundos; el resto de la ficha ya está disponible)</div></div></div>`;
   html += `<div class="sub" id="s-fuentes"><div class="card mt enlaces"><b>Consulta la información oficial</b><br>
       ${c?`<a href="${esc(c.url)}" target="_blank" rel="noopener">🏛️ Tramitación en la Cámara de Diputados (camara.cl) ↗</a>`:''}
@@ -507,26 +519,114 @@ function docCard(doc){
     <a class="btn-oficial" href="${esc(doc.url)}" target="_blank" rel="noopener">Abrir el documento oficial en camara.cl ↗</a>
   </div>`;
 }
+// ---- Documentos en memoria: se descargan TODOS al abrir la ficha y se borran del servidor al cerrarla o cambiar de proyecto
+let DOC_ABIERTO = null;
+function cerrarDocumentos(){
+  if(!DOC_ABIERTO) return;
+  const u = `/api/documentos/cerrar?boletin=${encodeURIComponent(DOC_ABIERTO.boletin)}&pid=${encodeURIComponent(DOC_ABIERTO.pid)}`;
+  DOC_ABIERTO = null;
+  try{ if(navigator.sendBeacon) navigator.sendBeacon(u); else fetch(u, {keepalive:true}); }catch(e){}
+}
+window.addEventListener('pagehide', cerrarDocumentos);
+window.addEventListener('beforeunload', cerrarDocumentos);
 async function cargarDocumentos(d){
   const caja = $('#doc-cuerpo'); if(!caja) return;
   const pid = (d.camara||{}).pid || '';
   if(!pid){ caja.innerHTML = '<div class="card mt">La Cámara de Diputadas y Diputados no publica documentos para este boletín (puede haberse tramitado solo en el Senado).</div>'; return; }
+  cerrarDocumentos();
+  DOC_ABIERTO = {boletin: d.boletin, pid};
   try{
     const r = await fetch(`/api/documentos?boletin=${encodeURIComponent(d.boletin)}&pid=${encodeURIComponent(pid)}`);
     const j = await r.json(); if(j.error) throw new Error(j.error);
-    const docs = j.documentos || [];
+    let docs = j.documentos || [];
     if(!docs.length){ caja.innerHTML = '<div class="card mt">La Cámara aún no publica informes, oficios ni otros documentos para este proyecto.</div>'; return; }
-    const orden = {VETO:0, INICIATIVA:1, INFORMEPLEY:2, INDICACIONPLEY:3, OFICIOPLEY:4};
-    docs.sort((a,b) => (orden[a.doc_tipo]??9) - (orden[b.doc_tipo]??9) || String(b.fecha||'').localeCompare(String(a.fecha||'')));
-    caja.innerHTML = `<div class="nota-metodo"><b>${fmt(j.total_documentos)}</b> documentos publicados · <b>${fmt(j.analizados)}</b> leídos ahora en memoria · <b>${fmt(docs.reduce((s,x)=>s+((x.citas||[]).length),0))}</b> leyes citadas detectadas</div>`
-      + docs.map(docCard).join('')
-      + ((j.otros||[]).length ? `<details class="mas"><summary>Otros ${fmt(j.otros.length)} documentos publicados (no leídos en esta consulta)</summary><ul class="doc-lista">${j.otros.map(o => `<li>${esc(o.etiqueta)} · ${esc(o.titulo||'')}${o.fecha?` · ${esc(o.fecha)}`:''}${o.etapa?` · ${esc(o.etapa)}`:''} — <a href="${esc(o.url)}" target="_blank" rel="noopener">abrir ↗</a></li>`).join('')}</ul></details>` : '')
-      + `<p class="nota-metodo mt">${esc(j.nota||'')} Los resúmenes se extraen automáticamente del texto oficial; ante cualquier duda, el documento manda.</p>`;
-    const n = $('#docs-n'); if(n) n.textContent = `(${fmt(j.analizados)})`;
-    marcarGlosario(caja);
+    pintarDocumentos(j, docs, caja);
+    if(j.pendientes > 0 && !window.__sinSegundaTanda){
+      try{
+        const r2 = await fetch(`/api/documentos?boletin=${encodeURIComponent(d.boletin)}&pid=${encodeURIComponent(pid)}&tanda=2`);
+        const j2 = await r2.json();
+        if(!j2.error && DOC_ABIERTO && DOC_ABIERTO.pid === pid && $('#doc-cuerpo') === caja){
+          docs = docs.concat(j2.documentos || []);
+          pintarDocumentos(Object.assign({}, j, {analizados: (j.analizados||0) + (j2.analizados||0), otros: j2.otros||[], pendientes: 0}), docs, caja);
+        }
+      }catch(e){ const p = $('#doc-pendientes'); if(p) p.innerHTML = `⚠️ No se pudo leer el resto de los documentos (${esc(e.message)}).`; }
+    }
   }catch(e){
     caja.innerHTML = `<div class="nota-metodo">⚠️ No se pudieron leer los documentos oficiales en este momento (${esc(e.message)}). <button type="button" class="btn-reintentar" id="btn-re-doc">↻ Reintentar</button></div>`;
     const b = $('#btn-re-doc'); if(b) b.addEventListener('click', () => { caja.innerHTML = '<div class="nota-metodo"><span class="cargando"></span> Leyendo documentos oficiales…</div>'; cargarDocumentos(d); });
+  }
+}
+function pintarDocumentos(j, docs, caja){
+  const orden = {VETO:0, INICIATIVA:1, INFORMEPLEY:2, COMPARADO:3, INDICACIONPLEY:4, OFICIOPLEY:5};
+  docs.sort((a,b) => (orden[a.doc_tipo]??9) - (orden[b.doc_tipo]??9) || String(b.fecha||'').localeCompare(String(a.fecha||'')));
+  caja.innerHTML = `<div class="nota-metodo"><b>${fmt(j.total_documentos)}</b> documentos publicados · <b>${fmt(j.analizados)}</b> leídos ahora en memoria · <b>${fmt(docs.reduce((s,x)=>s+((x.citas||[]).length),0))}</b> leyes citadas detectadas</div>`
+    + docs.map(docCard).join('')
+    + (j.pendientes > 0 ? `<div class="nota-metodo mt" id="doc-pendientes"><span class="cargando"></span> Leyendo los otros ${fmt(j.pendientes)} documentos del proyecto (informes, oficios, comparados e indicaciones)… se agregarán aquí mismo.</div>` : '')
+    + ((j.otros||[]).length ? `<details class="mas"><summary>Otros ${fmt(j.otros.length)} documentos publicados (no se pudieron leer en esta consulta)</summary><ul class="doc-lista">${j.otros.map(o => `<li>${esc(o.etiqueta)} · ${esc(o.titulo||'')}${o.fecha?` · ${esc(o.fecha)}`:''}${o.etapa?` · ${esc(o.etapa)}`:''} — <a href="${esc(o.url)}" target="_blank" rel="noopener">abrir ↗</a></li>`).join('')}</ul></details>` : '')
+    + `<p class="nota-metodo mt">${esc(j.nota||'')} Los resúmenes se extraen automáticamente del texto oficial; ante cualquier duda, el documento manda. 🔒 Cuando cierras esta página o cambias de proyecto, todos los documentos se eliminan de la memoria del servidor: no queda nada guardado.</p>`;
+  const n = $('#docs-n'); if(n) n.textContent = `(${fmt(j.analizados)})`;
+  marcarGlosario(caja);
+}
+/* ---------- Informe completo del proyecto (dentro de la ficha) ---------- */
+const ETAPAS = ['Ingreso', 'Primer trámite', 'Segundo trámite', 'Tercer trámite / Mixta', 'Tribunal Constitucional', 'Promulgación y publicación'];
+function progreso(d){
+  const s = d.senado || {}; const e = norm((s.etapa||'') + ' ' + (s.estado||'') + ' ' + (d.ley ? 'publicado' : ''));
+  let idx = 0;
+  if(/primer tramite/.test(e)) idx = 1; if(/segundo tramite/.test(e)) idx = 2; if(/tercer tramite|mixta|veto|observ/.test(e)) idx = 3; if(/tribunal/.test(e)) idx = 4; if(/terminada|publicad|promulg/.test(e) || d.ley) idx = 5;
+  if(/archiv|retirad|rechazad/.test(e) && !d.ley) return `<div class="progreso">${ETAPAS.map((x,i)=>`<span class="${i<idx?'done':''}">${x}</span>`).join('')}</div><p class="nota-metodo">⛔ Este proyecto no sigue avanzando: ${esc(s.estado||s.etapa)}.</p>`;
+  return `<div class="progreso">${ETAPAS.map((x,i)=>`<span class="${i<idx?'done':i===idx?'now':''}">${i<idx?'✔ ':i===idx?'▶ ':''}${x}</span>`).join('')}</div>`;
+}
+function votInforme(v, i, c){
+  return `<div class="vot" data-vid="${esc(v.id)}" id="vc-${esc(v.id)}">
+    <div class="cab" role="button" tabindex="0" aria-expanded="false"><span class="chev">▸</span><b class="cab-linea">Votación ${i} · ${esc(v.fecha)} · ${esc(v.articulo||v.tramite||'Votación')}${v.tipo?' · '+esc(v.tipo):''}</b><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span></div>
+    <div class="vot-body" style="display:none">
+    ${v.exp?renderSimple(v.exp, {oficialHref: c.url}):''}
+    <div class="nota-metodo obs-txt"><b>Texto oficial:</b> ${esc(v.articulo||'Votación del proyecto')}${v.tramite_regl?' · <b>Informe:</b> '+esc(v.tramite_regl):''}${v.materias?' · <b>Materias:</b> '+esc(v.materias):''}${v.quorum?' · <b>Quórum:</b> '+esc(v.quorum):''}</div>
+    ${barra(v.si, v.no, v.abst, v.votos ? Math.max(0, 155 - (v.si+v.no+v.abst)) : null)}
+    ${v.votos && Object.keys(v.votos).length ? `<button class="btn-det" data-det="cam-i-${esc(v.id)}">👥 Ver cómo votó cada diputad@</button><div id="cam-i-${esc(v.id)}" class="det" style="display:none"></div>` : '<div class="nota-metodo mt">La fuente oficial no entregó el voto por diputad@ de esta votación.</div>'}
+    </div></div>`;
+}
+async function cargarInforme(d){
+  const caja = $('#inf-cuerpo'); if(!caja) return;
+  try{
+    const r = await fetch('/api/informe?boletin=' + encodeURIComponent(d.boletin));
+    const I = await r.json(); if(I.error) throw new Error(I.error);
+    if($('#inf-cuerpo') !== caja) return;
+    // el voto nominal de TODAS las votaciones pasa también a la pestaña "Votaciones Cámara"
+    const c = d.camara || {}; const porId = {}; (c.votaciones||[]).forEach(v => porId[v.id] = v);
+    (I.capitulos_camara||[]).forEach(cp => cp.votaciones.forEach(v => { if(porId[v.id] && v.votos && !porId[v.id].votos) porId[v.id].votos = v.votos; }));
+    if(I.diputados && Object.keys(I.diputados).length && !Object.keys(d.diputados||{}).length) d.diputados = I.diputados;
+    const rs = I.resumen || {}, s = I.senado || d.senado || {}, ley = I.ley || d.ley;
+    const caps = I.capitulos_camara || [], ind = I.indicaciones || [], vet = I.vetos || [], vt = I.vetos_tramite || [], urg = s.urgencias || [], ctx = I.contexto || {};
+    let n = 0;
+    const secs = [
+      {id:'inf-res', tit:'Resumen y recorrido', html:`${progreso(I)}<div class="kpis">
+        <div class="kpi"><div class="num">${fmt(rs.n_votaciones_camara)}</div><div class="lbl">votaciones en la Cámara</div></div>
+        <div class="kpi"><div class="num">${fmt(rs.n_votaciones_senado)}</div><div class="lbl">votaciones en el Senado</div></div>
+        <div class="kpi"><div class="num">${fmt(rs.n_indicaciones)}</div><div class="lbl">propuestas de cambio votadas</div></div>
+        <div class="kpi"><div class="num">${fmt((rs.n_vetos||0) + vt.length)}</div><div class="lbl">vetos / observaciones del Presidente</div></div>
+        <div class="kpi"><div class="num">${fmt(rs.n_urgencias)}</div><div class="lbl">urgencias del Gobierno</div></div>
+        <div class="kpi"><div class="num">${fmt(rs.n_tramites)}</div><div class="lbl">pasos de tramitación</div></div></div>
+        ${ley?`<p class="mt">📗 Este proyecto ya es la <b>Ley N° ${esc(ley.numero)}</b>${ley.diario_oficial?`, publicada en el Diario Oficial el ${esc(ley.diario_oficial)}`:''}. <a href="${esc(ley.url)}" target="_blank" rel="noopener">Leer el texto de la ley en LeyChile ↗</a></p>`:''}`},
+      {id:'inf-cam', tit:'Todas las votaciones en la Cámara, por trámite', vacio: !caps.length, html: caps.length ? caps.map(cp => `<h4>${esc(cp.tramite)} <span class="nota-metodo">(${cp.votaciones.length} votaciones)</span></h4>${cp.votaciones.map(v => votInforme(v, ++n, c)).join('')}`).join('') : '<div class="card">Este proyecto no registra votaciones en la Sala de la Cámara.</div>'},
+      {id:'inf-ind', tit:'Propuestas de cambio (indicaciones) votadas en Sala', vacio: !ind.length, html: ind.length ? `<table class="tabla"><thead><tr><th>Fecha</th><th>Qué proponía</th><th>Resultado</th></tr></thead><tbody>${ind.map(v => `<tr><td>${esc(v.fecha)}</td><td>${v.exp?esc(v.exp.que):esc(v.articulo)} <a href="#vc-${esc(v.id)}">ver votación</a></td><td><span class="res ${resClase(v.resultado)}">${esc(v.resultado)}</span> ${v.si}-${v.no}</td></tr>`).join('')}</tbody></table>` : '<div class="card">No se votaron indicaciones en la Sala de la Cámara (los cambios, si los hubo, se resolvieron en comisión).</div>'},
+      {id:'inf-veto', tit:'Vetos y observaciones del Presidente', vacio: !(vet.length||vt.length), html:`<p class="nota-metodo">Después de que el Congreso aprueba una ley, el Presidente puede devolverla con observaciones (veto) para cambiar, agregar o quitar algo. El Congreso vota cada observación.</p>
+        ${vt.length?`<ul class="timeline mt">${vt.map(t => `<li><div class="f">${esc(t.fecha)} · ${esc(t.camara||'')}</div><div class="q">${esc(t.que)}</div>${t.exp?`<div class="simple">💬 ${esc(t.exp)}</div>`:''}</li>`).join('')}</ul>`:''}
+        ${vet.length?vet.map((v,i) => votInforme(v, 'V'+(i+1), c)).join(''):''}
+        ${!vet.length && !vt.length ? '<div class="card">✅ Este proyecto no ha recibido vetos ni observaciones del Presidente de la República.</div>' : ''}`},
+      {id:'inf-urg', tit:'Urgencias del Gobierno', vacio: !urg.length, html:`<p class="nota-metodo">La urgencia es la herramienta del Presidente para apurar un proyecto: simple (30 días), suma (15 días) o discusión inmediata (6 días).</p>${urg.length ? `<table class="tabla"><thead><tr><th>Tipo</th><th>Desde</th><th>Retirada</th></tr></thead><tbody>${urg.map(u => `<tr><td>${esc(u.tipo)}</td><td>${esc(u.ingreso)}</td><td>${esc(u.retiro||'—')}</td></tr>`).join('')}</tbody></table>` : '<div class="card">El Gobierno no ha puesto urgencias a este proyecto.</div>'}`},
+      {id:'inf-normas', tit:'Leyes y artículos que toca', vacio: !(ctx.citas||[]).length, html: renderContexto(ctx) || '<div class="card">Este proyecto no cita leyes existentes en sus votaciones: crea normas nuevas o la fuente no detalla las citas.</div>'},
+    ];
+    caja.innerHTML = `<div class="inf-indice">${secs.map((x,i) => `<a href="#${x.id}">${i+1}. ${esc(x.tit)}</a>`).join('')}</div>`
+      + secs.map((x,i) => `<section class="cap ${x.vacio?'vacio':''}" id="${x.id}"><h3><span class="num">${i+1}</span>${esc(x.tit)}</h3>${x.html}</section>`).join('')
+      + `<p class="nota-metodo mt">Informe armado en este momento (${esc(rs.generado||'')}) con los datos abiertos de la Cámara, el Senado y LeyChile. Nada se guarda: al cerrar la página desaparece de la memoria.</p>`;
+    activarVotos(d, caja); marcarGlosario(caja);
+    caja.querySelectorAll('.inf-indice a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); const el = document.getElementById(a.getAttribute('href').slice(1)); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }));
+    const nn = $('#inf-n'); if(nn) nn.textContent = `(${fmt(rs.n_votaciones_camara||0)} votaciones)`;
+    const bi = $('#btn-imprimir'); if(bi){ bi.style.display = ''; bi.onclick = () => { $$('.sub').forEach(x => x.classList.add('on')); $$('#inf-cuerpo .vot-body').forEach(b => b.style.display = ''); setTimeout(() => window.print(), 50); }; }
+  }catch(e){
+    caja.innerHTML = `<div class="nota-metodo mt">⚠️ No se pudo armar el informe completo en este momento (${esc(e.message)}). <button type="button" class="btn-reintentar" id="btn-re-inf">↻ Reintentar</button></div>`;
+    const b = $('#btn-re-inf'); if(b) b.addEventListener('click', () => { caja.innerHTML = '<div class="nota-metodo mt"><span class="cargando"></span> Armando el informe completo…</div>'; cargarInforme(d); });
   }
 }
 function activarSubtabs(){
@@ -544,7 +644,8 @@ function activarSubtabs(){
   });
 }
 /* detalle nominal: diputad@s (Cámara) y senador@s (Senado) */
-function activarVotos(d){
+function activarVotos(d, root){
+  const $$ = sel => [...(root||document).querySelectorAll(sel)];
   // plegado de cada votación (solo se ve la línea "fecha · trámite · tipo" y el resultado)
   const plegar = (vot, abrir) => {
     const body = vot.querySelector(':scope > .vot-body'), cab = vot.querySelector(':scope > .cab'); if(!body) return;
@@ -581,8 +682,11 @@ function activarVotos(d){
     caja.style.display = ''; b.textContent = b.textContent.replace('Ver','Ocultar');
     if(caja.dataset.listo) return; caja.dataset.listo = '1';
     if(b.dataset.det.startsWith('cam-')){
-      const v = c.votaciones.find(x => 'cam-'+x.id === b.dataset.det); const votos = v.votos || {};
-      const filas = Object.keys(dips).map(id => ({id, n: dips[id].n, g: dips[id].g, dist: dips[id].dist, v: votos[id] || 'X'}));
+      const vid = b.dataset.det.replace(/^cam-(i-)?/, '');
+      const v = c.votaciones.find(x => String(x.id) === vid) || {}; const votos = v.votos || {};
+      const votantes = Object.keys(votos); const periodoAnterior = votantes.some(id => !dips[id]);
+      const ids = periodoAnterior ? votantes : Object.keys(dips);
+      const filas = ids.map(id => ({id, n: (dips[id]||{}).n || ('Diputad@ N° '+id+' (período anterior)'), g: (dips[id]||{}).g || 'Cámara anterior', dist: (dips[id]||{}).dist || '', v: votos[id] || 'X'}));
       pintarNominal(caja, filas, {S:'Votó a favor', N:'Votó en contra', A:'Se abstuvo', X:'No votó (ausente o pareado)'}, 'bancada', true);
     }else{
       const v = sv[sv.length-1-(+b.dataset.det.slice(4))];
@@ -667,7 +771,7 @@ function marcarGlosario(root){
   const re = new RegExp('(^|[^\\\\wáéíóúñ@])(' + claves.map(k=>k.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')).join('|') + ')(?![\\\\wáéíóúñ@])', 'gi');
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(n){
     if(!n.nodeValue.trim() || !n.parentElement) return NodeFilter.FILTER_REJECT;
-    if(n.parentElement.closest('.glos, pre, a, button, summary, .obs-txt, dl.obs, h1, h2, h3, .tag, .chip, script, style, input, textarea')) return NodeFilter.FILTER_REJECT;
+    if(n.parentElement.closest('.glos, pre, a, button, summary, .obs-txt, dl.obs, h1, h2, h3, .tag, .chip, .progreso, .kpi, .inf-indice, script, style, input, textarea')) return NodeFilter.FILTER_REJECT;
     return NodeFilter.FILTER_ACCEPT; } });
   const nodos = []; while(walker.nextNode()) nodos.push(walker.currentNode);
   for(const n of nodos){
