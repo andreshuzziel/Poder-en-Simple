@@ -156,3 +156,36 @@ código.
   leídas, confianza; citas de leyes desde OCR marcadas "por confirmar".
 - Dependencias (se pierden si el entorno se reinicia): pip install pypdf olefile pymupdf rapidocr-onnxruntime
 - Prueba sin red (incluye OCR sintético): python3 test_documentos.py → [true x7]
+
+=====================================================================
+§9  ACTUALIZACIÓN AUTOMÁTICA Y PUBLICACIÓN EN NETLIFY (2026-09-23)
+=====================================================================
+Diagnóstico: la versión en poderensimple.netlify.app no cambiaba porque
+(1) index.html lleva los datos incrustados y solo cambia si se regenera,
+(2) el sitio se subió a mano (drag & drop) y no está conectado a un repositorio,
+(3) Netlify no tiene backend, por eso /api/* (buscador avanzado, informe) no funciona ahí.
+
+Nuevo flujo (todo en la raíz del repo):
+  actualizar_datos.py  → descarga datos oficiales (mismo paquete del modo en vivo) y
+                         renueva congreso_data.json, data_completa.json, votaciones_<año>.json,
+                         boletines_nombres.json, votaciones_destacadas.json, gobierno_snapshot.json,
+                         votos_leyes.json, gastos_hist.json, noticias.json, leyes_promulgadas.json.
+                         Si una fuente falla, conserva el archivo anterior. Resumen en actualizacion_estado.json.
+  publicar.sh          → actualizar_datos + TODOS los generadores + 6 pruebas jsdom + commit.
+                         Si una prueba falla NO hay commit (el sitio nunca queda roto).
+  netlify.toml / _redirects → rutas cortas (/calendario, /proxima, /buscador, /informe, /vivo),
+                         sin caché de HTML/JSON, y /api/* responde sin_servidor.json (aviso claro).
+  .github/workflows/actualizar.yml → GitHub Actions ejecuta publicar.sh todos los días 06:00 (Chile)
+                         y hace push; Netlify redepliega solo con cada push.
+
+PASOS QUE DEBE HACER EL ADMINISTRADOR UNA SOLA VEZ:
+  1. Crear un repositorio en GitHub (público o privado) y subir este directorio:
+       git remote add origin https://github.com/<usuario>/<repo>.git
+       git push -u origin master
+  2. En GitHub: Settings → Actions → General → "Workflow permissions" → Read and write.
+  3. En Netlify: Site configuration → Build & deploy → "Link repository" → elegir el repo.
+     Publish directory: "." (raíz). Build command: vacío. Guardar.
+  4. Probar: en GitHub, pestaña Actions → "Actualizar datos y páginas" → Run workflow.
+     En ~3 minutos Netlify publica la versión nueva.
+Manual (sin GitHub): ./publicar.sh && git push   (o arrastrar la carpeta a Netlify de nuevo).
+Cambiar la hora: editar la línea "cron" del workflow (está en UTC; Chile = UTC-3/-4).
