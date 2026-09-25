@@ -430,6 +430,58 @@
   table.cmp td.metrica{text-align:left; font-weight:700; color:var(--texto2); white-space:nowrap;}
   table.cmp td.gana{color:var(--verde); font-weight:800; background:#f2fbf6;}
   table.cmp tr:last-child td{border-bottom:none;}
+
+  /* ================= DISEÑO 2026-09 · jerarquía, módulos, escaneabilidad ================= */
+  :root{--fs-h2:clamp(22px,2.8vw,30px); --fs-h3:18px; --fs-body:15.5px; --fs-small:13px; --fs-kicker:11.5px;}
+  body{font-size:var(--fs-body); line-height:1.55;}
+  h2.tit{font-size:var(--fs-h2); font-weight:800; letter-spacing:-.3px; line-height:1.15; margin-top:4px;}
+  .kicker{display:inline-block; font-size:var(--fs-kicker); font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--azul2); margin-bottom:6px;}
+  .kicker.sec{display:block;}
+  body.dark .kicker{color:#ffd75e;}
+  p.lead{font-size:15.5px; line-height:1.6; max-width:760px;}
+  h3, .card h3{font-size:var(--fs-h3); font-weight:800; line-height:1.25;}
+  h3.sub-tit{margin-top:26px; font-size:19px; display:flex; align-items:center; gap:8px;}
+  .nota-metodo{font-size:var(--fs-small);}
+  .card p{font-size:14.5px;}
+  section{padding:38px 0 10px; border-top:1px solid var(--borde);}
+  section#intro{border-top:none;}
+  .kpi-card .num{font-variant-numeric:tabular-nums;}
+  /* nav agrupada */
+  @media (min-width:721px){ nav.menu a{ font-size:11.5px; padding:4px 7px; min-height:26px; } nav.menu .cont{ gap:2px 2px; padding-top:4px; padding-bottom:4px; } }
+  nav.menu .nav-grupo{font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--gris); padding:0 4px 0 10px; border-left:1px solid var(--borde); margin-left:4px; white-space:nowrap;}
+  nav.menu .nav-grupo:first-child{border-left:none; margin-left:0; padding-left:2px;}
+  nav.menu a.on{background:var(--azul); color:#fff;}
+  body.dark nav.menu .nav-grupo{color:#8c9ac0; border-left-color:#293450;}
+  @media (max-width:720px){ nav.menu .nav-grupo{display:none;} }
+  /* lo esencial */
+  .esencial{margin-top:18px; background:linear-gradient(135deg,#eef2fd,#f7f9ff); border:1px solid #cfdcf9; border-left:6px solid var(--azul); border-radius:14px; padding:16px 18px;}
+  .esencial-cab{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+  .esencial ul{list-style:none; margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px 18px;}
+  .esencial li{font-size:15px; line-height:1.4; display:flex; gap:8px; align-items:flex-start;}
+  .esencial li b{color:var(--azul); font-variant-numeric:tabular-nums;}
+  .esencial li a{color:var(--azul2); font-weight:700; text-decoration:none; white-space:nowrap;}
+  body.dark .esencial{background:linear-gradient(135deg,#1b2440,#161d33); border-color:#2c3a5e;} body.dark .esencial li b{color:#ffd75e;}
+  /* mapa de la página */
+  .mapa{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:16px;}
+  .mapa .tile{background:var(--tarjeta,#fff); border:1px solid var(--borde); border-radius:14px; padding:12px 14px; box-shadow:var(--sombra);}
+  .mapa .tile b{display:block; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--azul2); margin-bottom:6px;}
+  .mapa .tile a{display:block; font-size:13.5px; color:var(--texto); text-decoration:none; padding:3px 0; border-bottom:1px dashed transparent;}
+  .mapa .tile a:hover{color:var(--azul); border-bottom-color:var(--azul2);}
+  body.dark .mapa .tile{background:#182036; border-color:#293450;} body.dark .mapa .tile a{color:#dfe6f5;}
+  /* plegables (minimalismo informativo) */
+  details.mas{margin-top:14px;}
+  details.mas > summary{cursor:pointer; list-style:none; font-weight:800; color:var(--azul); font-size:15px; padding:10px 14px; border:1px dashed #b9c8ec; border-radius:12px; background:#f7f9ff; display:flex; align-items:center; gap:8px;}
+  details.mas > summary::-webkit-details-marker{display:none;}
+  details.mas > summary::before{content:"▸"; font-size:14px; transition:transform .2s;}
+  details.mas[open] > summary::before{transform:rotate(90deg);}
+  details.mas > summary h3{margin:0; font-size:16px;}
+  details.mas.intro-mas > summary{margin-top:0;}
+  .card-plegable details.mas{margin-top:0;} .card-plegable details.mas > summary{border:none; background:transparent; padding:0;}
+  body.dark details.mas > summary{background:#182036; border-color:#34456d; color:#ffd75e;}
+  /* volver arriba */
+  #ir-arriba{position:fixed; right:14px; bottom:14px; z-index:90; border:none; background:var(--azul); color:#fff; font-weight:800; border-radius:999px; padding:10px 14px; box-shadow:0 6px 18px rgba(0,0,0,.2); cursor:pointer; opacity:0; pointer-events:none; transition:opacity .25s;}
+  #ir-arriba.vis{opacity:1; pointer-events:auto;}
+  @media print{ #ir-arriba, nav.menu{display:none !important;} details.mas{open:true;} }
   /* ================= RESPONSIVE PLUS (todos los dispositivos) ================= */
   html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   body{ padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); }
@@ -603,28 +655,34 @@
   </div>
 </header>
 
-<nav class="menu">
+<nav class="menu" aria-label="Secciones de la página">
   <div class="cont">
+    <span class="nav-grupo">Hoy</span>
     <a href="#resumen">📌 Resumen</a>
     <a href="#noticias">📰 Noticias</a>
     <a href="#fechas">📅 Fechas clave</a>
-    <a href="elecciones_chile.html">🗳️ Elecciones</a>
+    <span class="nav-grupo">Congreso</span>
     <a href="#asistencia">🪑 Asistencia</a>
     <a href="#gastos">💰 Gastos</a>
     <a href="#votaciones">🗳️ Votaciones</a>
-    <a href="calendario_votaciones.html">🗓️ Calendario</a>
+    <a href="#ranking">🏆 Ranking</a>
     <a href="#proyectos-clave">📌 Proyectos clave</a>
-    <a href="#gobierno">🇨🇱 El Gobierno</a>
     <a href="#periodos">📜 Por período</a>
     <a href="#senado">🏛️ El Senado</a>
-    <a href="#verificacion">✅ Verificación</a>
+    <span class="nav-grupo">Gobierno</span>
+    <a href="#gobierno">🇨🇱 El Gobierno</a>
+    <span class="nav-grupo">Para ti</span>
     <a href="#explorador">🔎 Tu diputad@</a>
     <a href="#distrito">🏠 Tu distrito</a>
     <a href="#comparador">⚖️ Compara</a>
+    <span class="nav-grupo">Aprende</span>
     <a href="#como-ley">🧭 ¿Cómo se hace una ley?</a>
     <a href="#glosario">📖 Glosario</a>
-    <a href="#ranking">🏆 Ranking</a>
+    <a href="#verificacion">✅ Verificación</a>
+    <span class="nav-grupo">Más páginas</span>
+    <a href="elecciones_chile.html">🗳️ Elecciones</a>
     <a href="proxima_eleccion.html">🔜 Próxima elección</a>
+    <a href="calendario_votaciones.html">🗓️ Calendario</a>
     <a href="buscador_avanzado.html">🔎 Buscador avanzado</a>
     <button id="ninos-toggle" title="Modo «explícame como si tuviera 12 años»" aria-label="Explicación para niños y niñas" aria-pressed="false">🧒</button>
     <button id="dark-toggle" title="Cambiar entre modo claro y oscuro" aria-label="Modo oscuro">🌙</button>
@@ -638,6 +696,11 @@
     <h2 class="tit">👋 ¿Qué estoy mirando?</h2>
     <div id="ninos-banner">🧒 <b>Modo «explícame como si tuviera 12 años» activado.</b> Cada sección ahora parte con una explicación aún más simple y con ejemplos de la vida diaria. Toca 🧒 arriba para volver a la versión normal.</div>
     <p class="lead">Este tablero cubre los <b>dos poderes</b> que dirigen el país. El <b>Poder Legislativo</b> (el Congreso) discute y aprueba las leyes: la Cámara de Diputadas y Diputados, con <b>155 diputados y diputadas</b> elegidos por voto popular, más el Senado. El <b>Poder Ejecutivo</b> (el Gobierno) administra el Estado, encabezado por el Presidente y sus ministros. Esto es lo que cualquier ciudadano puede (y debería) poder revisar:</p>
+    <div class="esencial" id="esencial" aria-label="Lo esencial en 10 segundos">
+      <div class="esencial-cab"><span class="kicker">Lo esencial en 10 segundos</span><span class="nota-metodo" id="esencial-fecha"></span></div>
+      <ul id="esencial-lista"></ul>
+    </div>
+    <details class="mas intro-mas"><summary>📖 ¿Cómo leer este tablero? (1 minuto)</summary>
     <div class="grid dos">
       <div class="card"><h3>🪑 ¿Van a trabajar?</h3><p style="font-size:14px;color:var(--texto2)">Cada diputado tiene la obligación de asistir a las sesiones de la Sala, donde se votan los proyectos. Aquí ves quién asiste, quién falta y con qué justificación.</p></div>
       <div class="card"><h3>💰 ¿Cómo usan la plata?</h3><p style="font-size:14px;color:var(--texto2)">El Estado asigna a cada diputado un presupuesto mensual para contratar asesores y cubrir gastos de su trabajo (traslados, telefonía, oficina). Aquí ves cuánto gasta cada uno.</p></div>
@@ -645,6 +708,8 @@
       <div class="card"><h3>🧭 ¿De dónde salen los datos?</h3><p style="font-size:14px;color:var(--texto2)">De <b>fuentes oficiales</b>: los datos abiertos de la Cámara (vía el proyecto independiente <b>Mirada al Congreso</b>), la <b>Biblioteca del Congreso Nacional</b> y el portal <b>InfoLobby</b> del Consejo para la Transparencia, para el Gobierno.</p></div>
       <div class="card"><h3>🎖️ ¿Y el Gobierno?</h3><p style="font-size:14px;color:var(--texto2)">Más abajo encontrarás la sección <b>El Gobierno</b>: quién es el Presidente, quiénes forman su gabinete de ministros y desde cuándo, según los registros oficiales de transparencia.</p></div>
     </div>
+    </details>
+    <div class="mapa" id="mapa-pagina" aria-label="Mapa de la página"></div>
   </section>
 
   <!-- ══════════ NOTICIAS DEL DÍA ══════════ -->
@@ -678,16 +743,16 @@
       </div>
       <div class="card" id="card-audio" data-fecha="__AUDIO_FECHA__">
         <h3>🎧 Resumen al oído</h3>
-        <p style="font-size:14px; color:var(--texto2); margin-top:6px;">¿Sin tiempo para leer? Escucha en medio minuto lo más importante del Congreso y el Gobierno esta semana.</p>
+        <p style="font-size:14px; color:var(--texto2); margin-top:6px;">¿Sin tiempo para leer? Escucha en menos de dos minutos lo más importante del Congreso y el Gobierno esta semana.</p>
         <audio id="audio-resumen" controls preload="metadata" style="width:100%; margin-top:10px;" src="__AUDIO_SRC__"></audio>
         <p class="nota-metodo mt" id="audio-nota">__AUDIO_NOTA__</p>
       </div>
     </div>
 
-    <h3 style="margin-top:22px; font-size:19px;">🔜 Lo que se viene</h3>
+    <h3 class="sub-tit">🔜 Lo que se viene</h3>
     <div class="fechas-proximas mt" id="fechas-proximas"></div>
 
-    <h3 style="margin-top:26px; font-size:19px;">🗳️ Las próximas elecciones de Chile</h3>
+    <h3 class="sub-tit">🗳️ Las próximas elecciones de Chile</h3>
     <p class="nota-metodo">Calendario oficial del Servel. Después de las elecciones de 2025, no hay elecciones nacionales hasta 2028.</p>
     <div class="grid dos mt" id="fechas-elecciones"></div>
 
@@ -706,12 +771,14 @@
       <a id="btn-proxima" href="proxima_eleccion.html" style="display:inline-block; margin-top:14px; background:var(--azul); color:#fff; font-weight:800; font-size:15px; text-decoration:none; padding:12px 24px; border-radius:14px; box-shadow:0 4px 14px rgba(20,30,70,.2);">🔜 Ver la próxima elección →</a>
     </div>
 
-    <h3 style="margin-top:26px; font-size:19px;">🇨🇱 Feriados y conmemoraciones del año</h3>
+    <details class="mas"><summary><h3 class="sub-tit">🇨🇱 Feriados y conmemoraciones del año</h3></summary>
     <p class="nota-metodo">Los marcados con * pueden trasladarse a lunes según la ley. El Día de los Pueblos Indígenas se fija por decreto cada año (solsticio de invierno).</p>
     <div class="fechas-grid mt" id="fechas-feriados"></div>
+    </details>
 
-    <h3 style="margin-top:26px; font-size:19px;">🏛️ Hitos institucionales</h3>
+    <details class="mas"><summary><h3 class="sub-tit">🏛️ Hitos institucionales</h3></summary>
     <div class="fechas-grid mt" id="fechas-institucionales"></div>
+    </details>
   </section>
 
   <!-- ============ RESUMEN ============ -->
@@ -721,7 +788,7 @@
     <div class="grid kpis" id="kpis"></div>
     <div class="caja-explica" id="caja-periodo"></div>
 
-    <h3 style="margin-top:24px; font-size:19px;">👔 ¿Quiénes conducen el Congreso hoy?</h3>
+    <h3 class="sub-tit">👔 ¿Quiénes conducen el Congreso hoy?</h3>
     <p class="lead">Cada cámara elige su propia mesa directiva entre sus integrantes. Estas autoridades fueron confirmadas en los sitios oficiales de cada cámara.</p>
     <div class="grid dos mt" id="cards-mesas"></div>
   </section>
@@ -866,7 +933,7 @@
       <div id="lista-proyectos" class="mt"></div>
     </div>
 
-    <h3 style="margin-top:26px; font-size:19px;">⭐ Votaciones destacadas</h3>
+    <h3 class="sub-tit">⭐ Votaciones destacadas</h3>
     <p class="lead">Dos votaciones que muestran cómo se dividió la Cámara. Cada barra representa a una bancada y se divide según cómo votaron sus integrantes.</p>
     <div class="grid dos mt" id="cards-destacadas"></div>
 
@@ -920,14 +987,15 @@
         <h3>🎖️ Presidente de la República</h3>
         <div id="gob-pres"></div>
       </div>
-      <div class="card">
-        <h3>📋 ¿Cómo leer esta sección?</h3>
+      <div class="card card-plegable">
+        <details class="mas"><summary><h3>📋 ¿Cómo leer esta sección?</h3></summary>
         <p style="font-size:14.5px;color:var(--texto2);line-height:1.6">Cada ministerio registra oficialmente a su ministro/a en el <b>portal de transparencia de la Ley del Lobby</b> (Consejo para la Transparencia). La <b>fecha</b> de cada tarjeta es cuándo se hizo ese registro. Si una misma persona aparece en más de un ministerio, es porque el registro oficial la individualiza así (por ejemplo, al subrogar carteras).</p>
         <p style="font-size:14.5px;color:var(--texto2);line-height:1.6;margin-top:8px">El Presidente se verifica en la <b>Biblioteca del Congreso Nacional (BCN)</b>, que mantiene la historia oficial de todos los mandatarios.</p>
+        </details>
       </div>
     </div>
 
-    <h3 style="margin-top:26px; font-size:19px;">🏛️ El gabinete ministerial <span class="nota-metodo" id="gob-n-min"></span></h3>
+    <h3 class="sub-tit">🏛️ El gabinete ministerial <span class="nota-metodo" id="gob-n-min"></span></h3>
     <div class="gob-grid mt" id="gob-gabinete"></div>
 
     <p class="nota-metodo mt" id="gob-nota"></p>
@@ -943,11 +1011,12 @@
         <div id="chart-senado" class="mt"></div>
         <p class="nota-metodo mt" id="nota-senado"></p>
       </div>
-      <div class="card">
-        <h3>🧭 ¿Por qué no hay asistencia y gastos del Senado aquí?</h3>
+      <div class="card card-plegable">
+        <details class="mas"><summary><h3>🧭 ¿Por qué no hay asistencia y gastos del Senado aquí?</h3></summary>
         <p style="font-size:14px;color:var(--texto2)">La fuente de este tablero, <b>Mirada al Congreso</b>, hace seguimiento de <b>asistencia y gastos solo para la Cámara de Diputadas y Diputados</b>. Del Senado publica, por ahora, la elección de su presidencia y votaciones puntuales de proyectos de ley.</p>
         <p style="font-size:14px;color:var(--texto2)" class="mt">Si quieres datos de asistencia y gastos de senadores, puedes consultarlos directamente en el portal de <b>Transparencia del Senado</b> (<a href="https://www.senado.cl/transparencia" target="_blank" rel="noopener">senado.cl</a>), que publica esa información mes a mes.</p>
         <div class="caja-dato" style="margin-top:14px">💡 Dato ciudadano: la presidencia del Senado importa porque quien la ejerce organiza la tabla de proyectos que se votan y, además, está en la línea de sucesión del Presidente de la República.</div>
+        </details>
       </div>
     </div>
   </section>
@@ -956,6 +1025,7 @@
   <section id="verificacion">
     <h2 class="tit">✅ Constatación con fuentes oficiales</h2>
     <p class="lead">Antes de publicar este tablero, cada dato fue cruzado contra los sitios oficiales del Congreso: <b><a href="https://www.camara.cl" target="_blank" rel="noopener">camara.cl</a></b>, <b><a href="https://www.senado.cl" target="_blank" rel="noopener">senado.cl</a></b>, los <b>datos abiertos oficiales</b> (opendata.camara.cl) y la <b>BCN</b>. Esto fue lo que verificamos:</p>
+    <details class="mas"><summary>🔍 Ver el detalle de la verificación (qué coincidió y qué diferencias hay)</summary>
     <div class="grid dos mt">
       <div class="card">
         <h3>✔ Lo que coincidió exactamente</h3>
@@ -977,6 +1047,7 @@
         </div>
       </div>
     </div>
+    </details>
     <div class="caja-explica">
       <b>🧾 ¿Qué significa esto?</b> Que los números de este tablero son <b>confiables y trazables</b>: cada cifra se puede verificar en los portales oficiales de la Cámara y del Senado. Cuando hay dos formas legítimas de contar algo (por ejemplo, faltas con o sin licencia médica), este tablero te muestra ambas.
     </div>
@@ -2204,6 +2275,56 @@ document.addEventListener('click', function(e){
   const h = a.getAttribute('href') || '';
   if(/^https?:\/\//i.test(h) && a.host !== location.host){ a.target = '_blank'; a.rel = 'noopener'; }
 }, true);
+
+  /* ---------- DISEÑO: lo esencial, mapa, kickers, sección activa, ir arriba ---------- */
+  (function(){
+    const GRUPOS = [
+      {n:'Hoy', ids:['resumen','noticias','fechas']},
+      {n:'Congreso', ids:['asistencia','gastos','votaciones','ranking','proyectos-clave','periodos','senado']},
+      {n:'Gobierno', ids:['gobierno']},
+      {n:'Para ti', ids:['explorador','distrito','comparador']},
+      {n:'Aprende', ids:['como-ley','glosario','verificacion']},
+    ];
+    const $ = s => document.querySelector(s);
+    const fmt = n => Number(n||0).toLocaleString('es-CL');
+    // kicker sobre cada título de sección (arquitectura visible)
+    GRUPOS.forEach(g => g.ids.forEach(id => { const s = document.getElementById(id); const h = s && s.querySelector('h2.tit'); if(h && !s.querySelector('.kicker.sec')){ const k = document.createElement('span'); k.className = 'kicker sec'; k.textContent = g.n; h.parentNode.insertBefore(k, h); } }));
+    // mapa de la página
+    const mapa = $('#mapa-pagina');
+    if(mapa){
+      const titulo = id => { const h = document.querySelector('#'+id+' h2.tit'); return h ? h.childNodes[0].textContent.trim() : id; };
+      mapa.innerHTML = GRUPOS.map(g => `<div class="tile"><b>${g.n}</b>${g.ids.map(id => `<a href="#${id}">${titulo(id)}</a>`).join('')}</div>`).join('')
+        + `<div class="tile"><b>Más páginas</b><a href="calendario_votaciones.html">🗓️ Calendario de votaciones</a><a href="buscador_avanzado.html">🔎 Buscador avanzado</a><a href="elecciones_chile.html">🗳️ Elecciones 2025</a><a href="proxima_eleccion.html">🔜 Próxima elección</a></div>`;
+    }
+    // lo esencial en 10 segundos (se calcula con los datos de la página)
+    const ul = $('#esencial-lista');
+    if(ul && typeof DATA !== 'undefined'){
+      const k = DATA.kpi || {}, v = DATA.votaciones || {};
+      const items = [];
+      if(k.asistencia_promedio) items.push(`🪑 <span>Asistencia promedio a la Sala: <b>${String(k.asistencia_promedio).replace('.',',')}%</b> en ${fmt(k.total_sesiones)} sesiones. <a href="#asistencia">Ver por bancada →</a></span>`);
+      if(k.gasto_promedio) items.push(`💰 <span>Cada diputad@ gastó en promedio <b>$${fmt(k.gasto_promedio)}</b> en ${k.mes_gastos||'el último mes'}. <a href="#gastos">Ver en qué →</a></span>`);
+      if(v.total) items.push(`🗳️ <span><b>${fmt(v.total)}</b> votaciones este año: ${fmt(v.aprobadas)} aprobadas y ${fmt(v.rechazadas)} rechazadas. <a href="#votaciones">Ver qué se votó →</a></span>`);
+      const gab = (DATA.gobierno||{}).gabinete || [];
+      if(gab.length) items.push(`🇨🇱 <span>Gobierno: <b>${fmt(gab.length)}</b> ministerios con su ministro/a al día. <a href="#gobierno">Ver gabinete →</a></span>`);
+      const notis = DATA.noticias || {}; const nN = ['camara','senado','gobierno'].reduce((s,x)=>s+((notis[x]||[]).length),0);
+      if(nN) items.push(`📰 <span><b>${fmt(nN)}</b> titulares oficiales de hoy (Cámara, Senado y Presidencia). <a href="#noticias">Leerlos →</a></span>`);
+      ul.innerHTML = items.slice(0,5).map(x => `<li>${x}</li>`).join('');
+      const f = $('#esencial-fecha'); if(f && k.fecha_actualizacion) f.textContent = 'Datos al ' + k.fecha_actualizacion.split('-').reverse().join('/');
+    }
+    // sección activa en la barra (escaneabilidad)
+    const links = [...document.querySelectorAll('nav.menu a[href^="#"]')];
+    const secs = links.map(a => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+    function activa(){
+      const y = window.scrollY + 90; let cur = null;
+      secs.forEach(s => { if(s.offsetTop <= y) cur = s; });
+      links.forEach(a => a.classList.toggle('on', !!cur && a.getAttribute('href') === '#' + cur.id));
+    }
+    // ir arriba
+    const up = document.createElement('button'); up.id = 'ir-arriba'; up.type = 'button'; up.textContent = '↑ Arriba'; up.setAttribute('aria-label','Volver al inicio'); document.body.appendChild(up);
+    up.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+    window.addEventListener('scroll', () => { activa(); up.classList.toggle('vis', window.scrollY > 600); }, {passive:true});
+    activa();
+  })();
 </script>
 </body>
 </html>
