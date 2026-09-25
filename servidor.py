@@ -956,7 +956,7 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path == '/api/documentos/cerrar':  # la ficha se cerró: se eliminan de la memoria todos los documentos de ese proyecto
             qs = urllib.parse.parse_qs(p.query)
             pid = qs.get('pid', [''])[0].strip(); bol = qs.get('boletin', [''])[0].strip()
-            n = olvidar(f'docs:{pid}:{bol}:') if pid else 0
+            n = (olvidar(f'docs:{pid}:{bol}:') + olvidar(f'docs_lista:{pid}:{bol}')) if pid else 0
             self._json({'eliminados': n, 'mensaje': 'Documentos eliminados de la memoria del servidor.'})
         elif p.path in ('/informe', '/informe_proyecto.html'):   # el informe ahora vive dentro del Buscador avanzado
             self.send_response(302); self.send_header('Location', '/buscador_avanzado.html' + (('?' + p.query) if p.query else '')); self.end_headers()

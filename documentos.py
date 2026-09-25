@@ -554,7 +554,7 @@ def recolectar(pid, bol, fecha_ref='', max_docs=MAX_DOCS, con_citas=True, tanda=
        tanda=1 → los max_docs más relevantes (respuesta rápida); tanda=2 → TODOS los demás documentos del proyecto;
        max_docs=0 → todo de una vez."""
     from datetime import date
-    docs, errores = listar_documentos(pid, bol)
+    docs, errores = S.cached(f'docs_lista:{pid}:{bol}', lambda: listar_documentos(pid, bol))
     ordenados = sorted(docs, key=lambda d: _prioridad(d, fecha_ref))
     if not max_docs:
         elegidos = ordenados

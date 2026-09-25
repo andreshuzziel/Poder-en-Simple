@@ -143,7 +143,7 @@
   footer a{color:#ffd75e;}
   footer .titulo{color:#fff; font-weight:800; font-size:15px; margin-bottom:8px;}
   .mt{margin-top:14px;}
-  .nota-metodo{font-size:12.5px; color:var(--gris);}
+  .nota-metodo{font-size:12.5px; color:var(--gris); overflow-wrap:anywhere; word-break:break-word;}
 
   /* ================= REDISEÑO 2.0 ================= */
   html{scroll-behavior:smooth;}
@@ -274,7 +274,8 @@
   .gob-card .ministro{font-size:15.5px; font-weight:700; margin-top:6px; color:var(--texto); line-height:1.35;}
   .gob-card .reg{font-size:11.5px; color:var(--gris); margin-top:8px;}
   .chip-s{position:absolute; top:10px; right:10px; background:#fff3cd; color:#8a6d00; border:1px solid #eedc9a; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:99px;}
-  @media (max-width:720px){ .gob-grid{grid-template-columns:1fr 1fr;} .gob-pres{flex-direction:column; text-align:center;} }
+  @media (max-width:720px){ .gob-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));} .gob-card{min-width:0;} .gob-pres{flex-direction:column; text-align:center;} }
+  @media (max-width:420px){ .gob-grid{grid-template-columns:1fr;} }
 
   /* hitos por período (ambos poderes) */
   .per-row{display:grid; grid-template-columns:185px 1fr 1fr; gap:12px; margin-top:12px; align-items:stretch;}
@@ -478,6 +479,8 @@
   details.mas.intro-mas > summary{margin-top:0;}
   .card-plegable details.mas{margin-top:0;} .card-plegable details.mas > summary{border:none; background:transparent; padding:0;}
   body.dark details.mas > summary{background:#182036; border-color:#34456d; color:#ffd75e;}
+  .btn-descarga{display:inline-block; background:var(--verde,#1f8f4e); color:#fff !important; font-weight:800; text-decoration:none; padding:9px 14px; border-radius:10px; font-size:14px;}
+  .btn-descarga:hover{filter:brightness(1.08);} .descargas{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
   /* volver arriba */
   #ir-arriba{position:fixed; right:14px; bottom:14px; z-index:90; border:none; background:var(--azul); color:#fff; font-weight:800; border-radius:999px; padding:10px 14px; box-shadow:0 6px 18px rgba(0,0,0,.2); cursor:pointer; opacity:0; pointer-events:none; transition:opacity .25s;}
   #ir-arriba.vis{opacity:1; pointer-events:auto;}
@@ -787,6 +790,7 @@
     <p class="lead">Los números grandes para partir. Período legislativo <b>2026–2030</b>.</p>
     <div class="grid kpis" id="kpis"></div>
     <div class="caja-explica" id="caja-periodo"></div>
+    <p class="mt descargas"><a class="btn-descarga" href="datos_congreso.xlsx" download>📥 Descargar todos los datos en Excel</a> <span class="nota-metodo">Asistencia y gastos de los 155 diputad@s, bancadas, votaciones destacadas y la votación de la mesa del Senado. Se renueva con cada actualización.</span></p>
 
     <h3 class="sub-tit">👔 ¿Quiénes conducen el Congreso hoy?</h3>
     <p class="lead">Cada cámara elige su propia mesa directiva entre sus integrantes. Estas autoridades fueron confirmadas en los sitios oficiales de cada cámara.</p>
@@ -2296,9 +2300,10 @@ document.addEventListener('click', function(e){
       mapa.innerHTML = GRUPOS.map(g => `<div class="tile"><b>${g.n}</b>${g.ids.map(id => `<a href="#${id}">${titulo(id)}</a>`).join('')}</div>`).join('')
         + `<div class="tile"><b>Más páginas</b><a href="calendario_votaciones.html">🗓️ Calendario de votaciones</a><a href="buscador_avanzado.html">🔎 Buscador avanzado</a><a href="elecciones_chile.html">🗳️ Elecciones 2025</a><a href="proxima_eleccion.html">🔜 Próxima elección</a></div>`;
     }
-    // lo esencial en 10 segundos (se calcula con los datos de la página)
+    // lo esencial en 10 segundos (se calcula con los datos de la página; en modo en vivo se vuelve a llamar al llegar los datos)
+    window.pintarEsencial = function(){
     const ul = $('#esencial-lista');
-    if(ul && typeof DATA !== 'undefined'){
+    if(ul && typeof DATA !== 'undefined' && DATA){
       const k = DATA.kpi || {}, v = DATA.votaciones || {};
       const items = [];
       if(k.asistencia_promedio) items.push(`🪑 <span>Asistencia promedio a la Sala: <b>${String(k.asistencia_promedio).replace('.',',')}%</b> en ${fmt(k.total_sesiones)} sesiones. <a href="#asistencia">Ver por bancada →</a></span>`);
@@ -2311,6 +2316,8 @@ document.addEventListener('click', function(e){
       ul.innerHTML = items.slice(0,5).map(x => `<li>${x}</li>`).join('');
       const f = $('#esencial-fecha'); if(f && k.fecha_actualizacion) f.textContent = 'Datos al ' + k.fecha_actualizacion.split('-').reverse().join('/');
     }
+    };
+    window.pintarEsencial();
     // sección activa en la barra (escaneabilidad)
     const links = [...document.querySelectorAll('nav.menu a[href^="#"]')];
     const secs = links.map(a => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);

@@ -41,10 +41,10 @@ boot = """
 
 (async function(){
   await cargarEnVivo();
-  if(DATA) render();
+  if(DATA){ render(); if(window.pintarEsencial) window.pintarEsencial(); }
   // Auto-refresco silencioso cada 15 min: misma lógica "sin base de datos" —
   // vuelve a descargar al momento, mantiene todo solo en RAM y re-rota los proyectos.
-  setInterval(async ()=>{ await cargarEnVivo(true); if(DATA) render(); }, 15*60*1000);
+  setInterval(async ()=>{ await cargarEnVivo(true); if(DATA){ render(); if(window.pintarEsencial) window.pintarEsencial(); } }, 15*60*1000);
 })();
 </script>"""
 tpl = tpl.replace("</script>", boot, 1)
