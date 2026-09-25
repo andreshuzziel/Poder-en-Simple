@@ -210,3 +210,11 @@ Cambiar la hora: editar la línea "cron" del workflow (está en UTC; Chile = UTC
   leyes citadas) y agrega el botón Imprimir/guardar PDF. /informe redirige al buscador (servidor y _redirects).
   Documentos: dos tandas (8 + resto) y borrado de RAM al cerrar, cambiar de proyecto o volver a la lista.
   Pruebas: test_buscador_jsdom.js §3b/§3c (usa test_informe_fixture.json y test_documentos_fixture.json).
+
+§12 AUDITORÍA DE CONEXIONES (2026-09-25)
+  Revisado: enlaces entre páginas, rutas /api usadas por cada HTML vs servidor.py, archivos que leen
+  los generadores, redirecciones de Netlify, imports Python, ejecución completa de publicar.sh.
+  Arreglos: servidor.py sirve archivos estáticos de la raíz (xlsx, mp3, json, png…; nunca .py ni
+  INSTRUCTIVO.txt), /vivo → portada, "Broken pipe" silenciado, log solo de errores;
+  publicar.sh/hito.sh con permiso de ejecución guardado en git (el workflow usa `bash ./publicar.sh`);
+  requirements.txt con las dependencias (estáticas y modo en vivo).
