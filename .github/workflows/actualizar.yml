@@ -16,6 +16,6 @@ jobs:
         with: { node-version: '20' }
       - run: pip install requests openpyxl edge-tts
       - run: mkdir -p /tmp/jst && cd /tmp/jst && npm init -y >/dev/null && npm i jsdom >/dev/null
-      - run: ./publicar.sh
+      - run: bash ./publicar.sh
         env: { GIT_NAME: github-actions, GIT_EMAIL: actions@github.com }
       - run: git push

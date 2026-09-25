@@ -1,0 +1,11 @@
+# El Poder en Simple — dependencias Python
+# Publicación estática (GitHub Actions / publicar.sh):
+requests
+openpyxl
+edge-tts
+# Modo en vivo con lectura de documentos oficiales (servidor.py):
+pypdf
+pymupdf
+olefile
+rapidocr-onnxruntime
+numpy

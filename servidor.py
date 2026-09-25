@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import os as _os
+import os
 BASE_DIR = _os.path.dirname(_os.path.abspath(__file__))  # carpeta del proyecto (portátil: funciona en cualquier equipo o servidor)
 def _p(nombre): return _os.path.join(BASE_DIR, nombre)
 
@@ -833,12 +834,25 @@ class Handler(BaseHTTPRequestHandler):
 
     def _json(self, obj, code=200):
         b = json.dumps(obj, ensure_ascii=False).encode()
-        self.send_response(code)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.send_header('Cache-Control', 'no-store')
-        self.send_header('Content-Length', str(len(b)))
-        self.end_headers()
-        self.wfile.write(b)
+        try:
+            self.send_response(code)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(b)))
+            self.end_headers()
+            self.wfile.write(b)
+        except (BrokenPipeError, ConnectionResetError):
+            pass   # el navegador cerró la pestaña antes de recibir la respuesta: no es un error del servidor
+
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def log_message(self, fmt, *args):
+        if not str(args[1] if len(args) > 1 else '').startswith(('200', '302', '304')):
+            super().log_message(fmt, *args)
 
     def do_POST(self):
         # sendBeacon del navegador al cerrar la ficha de un proyecto → borrar sus documentos de la RAM
@@ -978,8 +992,24 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 estado = {k: {'edad_s': round(time.time()-v['t'])} for k, v in CACHE.items()}
             self._json({'cache_ram': estado, 'persistencia': 'RAM (se borra al detener el servidor)'})
+        elif p.path in ('/vivo', '/dashboard_vivo.html'):
+            self.send_response(302); self.send_header('Location', '/'); self.end_headers()
         else:
-            self.send_response(404); self.end_headers()
+            # Archivos estáticos de la raíz (Excel, audio, JSON públicos, imágenes). Solo nombres simples y extensiones permitidas.
+            nombre = os.path.basename(urllib.parse.unquote(p.path))
+            ext = os.path.splitext(nombre)[1].lower()
+            tipos = {'.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     '.mp3': 'audio/mpeg', '.txt': 'text/plain; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.csv': 'text/csv; charset=utf-8'}
+            ruta = _p(nombre)
+            if nombre and '/' not in nombre and ext in tipos and os.path.isfile(ruta) and not nombre.startswith('.') and nombre not in ('INSTRUCTIVO.txt',):
+                data = open(ruta, 'rb').read()
+                self.send_response(200)
+                self.send_header('Content-Type', tipos[ext])
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(len(data)))
+                self.end_headers(); self.wfile.write(data)
+            else:
+                self.send_response(404); self.end_headers()
 
 if __name__ == '__main__':
     ThreadingHTTPServer.daemon_threads = True
