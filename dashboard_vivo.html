@@ -661,7 +661,7 @@
       <span class="badge">📊 Fuentes oficiales: Cámara, BCN e InfoLobby</span>
       <span class="badge">🔎 Recopilados por Mirada al Congreso</span>
       <span class="badge">✅ Constados con los sitios oficiales</span>
-      <span class="badge">📡 Datos en vivo · <span id="momento">descargando…</span> · ⟳ se actualiza solo cada 15 min</span>
+      <span class="badge">📡 Datos en vivo · <span id="momento">descargando…</span></span>
     </div>
     <div class="countdown" id="elecciones-countdown"></div>
   </div>
@@ -1181,8 +1181,7 @@ async function cargarEnVivo(silencioso){
     if(!r.ok) throw new Error('HTTP '+r.status);
     DATA = await r.json();
     ov.style.display='none';
-    document.getElementById('momento').textContent =
-      'Descargado en vivo a las ' + new Date().toLocaleTimeString('es-CL');
+    document.getElementById('momento').textContent = 'los datos se actualizan solos cada 15 minutos';
   }catch(e){
     if(silencioso){ console.warn('auto-refresco falló; se mantienen los datos anteriores', e); return; }
     ov.style.display='none'; err.style.display='block';

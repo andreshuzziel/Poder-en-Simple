@@ -21,8 +21,7 @@ async function cargarEnVivo(silencioso){
     if(!r.ok) throw new Error('HTTP '+r.status);
     DATA = await r.json();
     ov.style.display='none';
-    document.getElementById('momento').textContent =
-      'Descargado en vivo a las ' + new Date().toLocaleTimeString('es-CL');
+    document.getElementById('momento').textContent = 'los datos se actualizan solos cada 15 minutos';
   }catch(e){
     if(silencioso){ console.warn('auto-refresco falló; se mantienen los datos anteriores', e); return; }
     ov.style.display='none'; err.style.display='block';
@@ -67,7 +66,7 @@ tpl = tpl.replace('<header class="hero">', overlay + '\n<header class="hero">', 
 
 # 4) Insignia de actualización -> indicador en vivo
 tpl = tpl.replace('<span class="badge">🗓️ Actualizado al 17 de septiembre de 2026</span>',
-                  '<span class="badge">📡 Datos en vivo · <span id="momento">descargando…</span> · ⟳ se actualiza solo cada 15 min</span>', 1)
+                  '<span class="badge">📡 Datos en vivo · <span id="momento">descargando…</span></span>', 1)
 
 # 5) Pie de página: sin base de datos
 tpl = tpl.replace('Este tablero es un resumen educativo.',
