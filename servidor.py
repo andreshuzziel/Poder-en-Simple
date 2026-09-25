@@ -705,7 +705,16 @@ def armar_todo(fresh=False):
         gmap = consolidar_gastos(gastos['entries'])
         asist = f_asi.result()
         senado = f_sen.result()
-        mesa = f_mesa.result()
+        try:
+            mesa = f_mesa.result()
+        except Exception as e:                     # camara.cl lento o caído: no se cae todo el tablero
+            print('mesa Cámara no disponible:', type(e).__name__, e)
+            mesa = []
+            try:
+                mesa = json.load(open(_p('data_completa.json'))).get('mesas', {}).get('camara', {}).get('autoridades') or []
+            except Exception:
+                pass
+            meta['fuentes']['Mesa de la Cámara (camara.cl)'] = 'sin respuesta ahora; se muestra la última conocida' if mesa else 'no disponible en este momento'
         f_vot = ex.submit(cached, 'votaciones', lambda: src_votaciones(diputados), fresh)
         vot = f_vot.result()
         try:
