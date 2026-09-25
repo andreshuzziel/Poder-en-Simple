@@ -1020,12 +1020,22 @@ if __name__ == '__main__':
     print(f'   → http://0.0.0.0:{PUERTO}/')
     # Precalienta en segundo plano el índice del buscador avanzado (solo RAM) y lo renueva cada 15 min
     def _precalentar():
+        # Renueva en segundo plano el tablero y el índice del buscador un minuto ANTES de que venzan,
+        # así ningún visitante espera la descarga: siempre encuentra datos vivos ya listos en RAM.
+        primera = True
         while True:
+            try:
+                if not primera:
+                    cached('todo', lambda: armar_todo(fresh=True), fresh=True)
+                    print(time.strftime('%H:%M:%S'), 'tablero renovado en segundo plano')
+            except Exception as e:
+                print('renovación tablero:', e)
             try:
                 import buscador
                 buscador.buscar('ley')
             except Exception as e:
                 print('precalentado buscador:', e)
+            primera = False
             time.sleep(TTL_CACHE - 60)
     threading.Thread(target=_precalentar, daemon=True).start()
     ThreadingHTTPServer(('0.0.0.0', PUERTO), Handler).serve_forever()
