@@ -73,14 +73,26 @@ def http_post_json(url, payload, timeout=40, tries=2):
             last = e; time.sleep(1)
     raise last
 
+TTL_FALLO = 5 * 60           # si una fuente falló, no se reintenta durante 5 min (evita esperas largas repetidas)
+
 def cached(key, fn, fresh=False):
-    """Devuelve el valor vivo de RAM; si no existe o venció, lo descarga al momento."""
+    """Devuelve el valor vivo de RAM; si no existe o venció, lo descarga al momento.
+       Un fallo también se recuerda (poco tiempo) para que una fuente caída no frene toda la página en cada visita."""
     with LOCK:
         hit = CACHE.get(key)
         if hit and not fresh and time.time() - hit['t'] < TTL_CACHE:
-            hit['cached'] = True
-            return hit['v']
-    v = fn()
+            if 'err' in hit:
+                if time.time() - hit['t'] < TTL_FALLO:
+                    raise hit['err']
+            else:
+                hit['cached'] = True
+                return hit['v']
+    try:
+        v = fn()
+    except Exception as e:
+        with LOCK:
+            CACHE[key] = {'err': e, 't': time.time()}
+        raise
     with LOCK:
         CACHE[key] = {'v': v, 't': time.time(), 'cached': False}
     return v
@@ -847,7 +859,7 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path == '/api/todo':
             fresh = urllib.parse.parse_qs(p.query).get('fresh', ['0'])[0] == '1'
             try:
-                self._json(armar_todo(fresh=fresh))
+                self._json(cached('todo', lambda: armar_todo(fresh=fresh), fresh))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._json({'error': str(e)}, 500)
