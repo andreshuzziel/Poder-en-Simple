@@ -111,20 +111,54 @@ def de_latin1(s):
     return s.encode('latin-1', 'ignore').decode('unicode_escape') if '\\x' in s else s
 
 # ------------------------- fuentes en vivo -------------------------
-def src_diputados_camara():
-    """Padrón oficial de 155 diputad@s desde camara.cl (en vivo)."""
-    h = http_get('https://www.camara.cl/diputados/diputados.aspx')
-    arts = re.findall(r'<article class="grid-2">(.*?)</article>', h, re.S)
+def src_diputados_opendata():
+    """Respaldo oficial: padrón vigente desde el servicio de datos abiertos de la Cámara (XML en vivo).
+       Se usa cuando camara.cl bloquea o no responde. El distrito se completa con el último padrón publicado."""
+    import xml.etree.ElementTree as ET
+    x = http_get('https://opendata.camara.cl/camaradiputados/WServices/WSDiputado.asmx/retornarDiputadosPeriodoActual')
+    ns = '{http://opendata.camara.cl/camaradiputados/v1}'
+    distritos = {}
+    try:
+        for d in json.load(open(_os.path.join(BASE_DIR, 'congreso_data.json'), encoding='utf-8')).get('diputados', []):
+            distritos[str(d.get('id'))] = str(d.get('distrito', ''))
+    except Exception:
+        pass
     out = {}
-    for a in arts:
-        pid = re.search(r'detalle/mociones\.aspx\?prmID=(\d+)', a)
-        nom = re.search(r'<h4><a[^>]*>\s*(?:Sra?\. )?([^<]+?)\s*</a></h4>', a)
-        par = re.search(r'Partido:\s*([^<]+?)\s*</p>', a)
-        dis = re.search(r'Distrito:\s*N°(\d+)', a)
-        if pid and nom:
-            out[pid.group(1)] = {'nombre': nom.group(1), 'partido': (par.group(1).strip() if par else ''),
-                                 'distrito': dis.group(1) if dis else ''}
+    for d in ET.fromstring(x).iter(ns + 'Diputado'):
+        pid = (d.findtext(ns + 'Id') or '').strip()
+        if not pid or pid in out:
+            continue
+        nombre = ' '.join(s for s in [d.findtext(ns + 'Nombre'), d.findtext(ns + 'ApellidoPaterno'), d.findtext(ns + 'ApellidoMaterno')] if s and s.strip()).strip()
+        partido = ''
+        mils = d.findall(ns + 'Militancias/' + ns + 'Militancia')
+        if mils:
+            ult = max(mils, key=lambda m: m.findtext(ns + 'FechaInicio') or '')
+            partido = (ult.findtext(ns + 'Partido/' + ns + 'Alias') or ult.findtext(ns + 'Partido/' + ns + 'Id') or '').strip()
+        out[pid] = {'nombre': nombre, 'partido': partido, 'distrito': distritos.get(pid, '')}
+    if len(out) < 100:
+        raise RuntimeError(f'opendata entregó solo {len(out)} diputad@s')
     return out
+
+def src_diputados_camara():
+    """Padrón oficial de 155 diputad@s desde camara.cl (en vivo); si camara.cl bloquea, usa datos abiertos oficiales."""
+    try:
+        h = http_get('https://www.camara.cl/diputados/diputados.aspx')
+        arts = re.findall(r'<article class="grid-2">(.*?)</article>', h, re.S)
+        out = {}
+        for a in arts:
+            pid = re.search(r'detalle/mociones\.aspx\?prmID=(\d+)', a)
+            nom = re.search(r'<h4><a[^>]*>\s*(?:Sra?\. )?([^<]+?)\s*</a></h4>', a)
+            par = re.search(r'Partido:\s*([^<]+?)\s*</p>', a)
+            dis = re.search(r'Distrito:\s*N°(\d+)', a)
+            if pid and nom:
+                out[pid.group(1)] = {'nombre': nom.group(1), 'partido': (par.group(1).strip() if par else ''),
+                                     'distrito': dis.group(1) if dis else ''}
+        if len(out) < 100:
+            raise RuntimeError(f'camara.cl entregó solo {len(out)} diputad@s')
+        return out
+    except Exception as e:
+        print('camara.cl diputados no disponible (%s); usando datos abiertos oficiales' % e)
+        return src_diputados_opendata()
 
 PARTIDO_GRUPO = {
     'UDI': 'UDI', 'RN': 'RN/EVO', 'EVOP': 'RN/EVO', 'EVOPOLI': 'RN/EVO',
