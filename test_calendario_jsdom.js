@@ -21,7 +21,9 @@ const D = JSON.parse(html.match(/const DATA = (\{.*\});/)[1]);
 console.log('== 1. carga sin errores ==');
 t('sin errores js en load', errs.length === 0, JSON.stringify(errs.slice(0,3)));
 t('DATA inyectada', html.includes('const DATA = {'));
-t('badges del hero con totales', $('#hero-badges').textContent.includes(String(D.votaciones.length)));
+const totStr = String(D.votaciones.length);
+const totFmt = totStr.replace(/(\d)(?=(\d{3})+$)/g, '$1.');
+t('badges del hero con totales', $('#hero-badges').textContent.includes(totStr) || $('#hero-badges').textContent.includes(totFmt));
 t('KPIs del año (4)', $$('#kpis-anio .kpi').length === 4);
 t('155 diputad@s en el padrón', Object.keys(D.diputados).length === 155);
 

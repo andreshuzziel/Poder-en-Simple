@@ -17,7 +17,15 @@ python3 gen_elecciones_page.py
 echo "== 3/4 Pruebas =="
 NP="${NODE_PATH:-/tmp/jst/node_modules}"
 if [ -d "$NP/jsdom" ]; then
-  for t in test_*_jsdom.js; do NODE_PATH="$NP" node "$t" >/dev/null && echo "  ✔ $t" || { echo "  ✘ $t"; exit 1; }; done
+  for t in test_*_jsdom.js; do
+    if out=$(NODE_PATH="$NP" node "$t" 2>&1); then
+      echo "  ✔ $t"
+    else
+      echo "  ✘ $t"
+      echo "$out"
+      exit 1
+    fi
+  done
 else
   echo "  (jsdom no instalado: pruebas omitidas)"
 fi
