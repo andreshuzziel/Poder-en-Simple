@@ -1,5 +1,5 @@
 {
- "inicio": "2026-10-16T14:26:57",
+ "inicio": "2026-10-17T13:23:56",
  "ok": {
   "paquete en vivo (asistencia, gastos, votaciones, Senado, Gobierno, noticias)": {
    "detalle": {
@@ -9,11 +9,11 @@
     "gastos_hist": 2,
     "noticias": 12
    },
-   "seg": 47.4
+   "seg": 51.9
   },
   "votaciones del año (filas)": {
    "detalle": "1028 votaciones · última 2026-10-07",
-   "seg": 1.5
+   "seg": 1.6
   },
   "leyes promulgadas": {
    "detalle": "300 leyes",
@@ -21,6 +21,6 @@
   }
  },
  "fallos": {},
- "fin": "2026-10-16T14:27:46",
- "fecha_datos": "2026-10-16"
+ "fin": "2026-10-17T13:24:50",
+ "fecha_datos": "2026-10-17"
 }
